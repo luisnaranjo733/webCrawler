@@ -74,6 +74,36 @@ function clearErrorLog() {
 
 // controller logic
 
+function request(requestType, webMethodName, params, successCallback, failureCallback) {
+    let formattedData = '';
+    if (params) {
+        formattedData = '{';
+        for (let key of Object.keys(params)) {
+            let value = params[key];
+            formattedData = formattedData.concat(`"${key}": "${value}",`);
+        }
+        formattedData = formattedData.slice(0, formattedData.length - 1); // remove last trailing comma
+        formattedData = formattedData.concat('}')
+    }
+
+    if (successCallback == null) {
+        successCallback = () => { }
+    }
+
+    if (failureCallback == null) {
+        failureCallback = () => {}
+    }
+
+    $.ajax({
+        type: requestType,
+        url: `Admin.asmx/${webMethodName}`,
+        data: formattedData,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+    }).done(data => successCallback(data.d)
+    ).fail(failureCallback);
+}
+
 
 $(document).ready(function () {
     renderStats('47%', '31mb', '4,802', '7', '1,201 rows');
@@ -88,7 +118,30 @@ $(document).ready(function () {
 
     let errorLog = [
         'stuff went wrong here because X',
-        'stuff went wrong over there because Y',
+        'stuff went wrong over there because Z',
     ];
     renderErrorLog(errorLog);
+
+    $('#startCrawling').click(click => {
+        console.log('start crawling');
+        let url = $('#rootCrawlUrl').val();
+        request('POST', 'startCrawling', {'robotsURL': url});
+
+    });
+
+    $('#retrievePageTitle').click(() => {
+        let url = $('#indexedUrl').val();
+        request('POST', 'RetrievePageTitle', { 'url': url }, (title) => {
+            console.log(title); 
+        });
+    });
+
+    $('#stopWorkers').click(() => {
+        request('POST', 'StopWorkers');
+    })
+
+    $('#clearEverything').click(() => {
+        request('POST', 'ClearEverything');
+    })
+
 });

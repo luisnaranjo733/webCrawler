@@ -16,7 +16,7 @@
             crossorigin="anonymous"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-    <script src="static/js/app.js"></script>
+    <script src="js/mvc.js"></script>
 </head>
 <body>
     <div class="container">
@@ -70,9 +70,9 @@
                     <form class="form-inline">
                         <div class="form-group">
                             <label for="rootCrawlUrl">URL</label>
-                            <input type="text" class="form-control" id="rootCrawlUrl" placeholder="Root crawling url">
+                            <input type="text" class="form-control" id="rootCrawlUrl" placeholder="Root crawling url" value="http://www.cnn.com/robots.txt">
                         </div>
-                        <button type="submit" class="btn btn-primary">Start crawling</button>
+                        <button type="button" class="btn btn-primary" id="startCrawling">Start crawling</button>
                     </form>
 
 
@@ -81,10 +81,11 @@
                             <label for="indexedUrl">URL</label>
                             <input type="text" class="form-control" id="indexedUrl" placeholder="Indexed url">
                         </div>
-                        <button type="submit" class="btn btn-default">Retrieve page title from index</button>
+                        <button type="button" class="btn btn-primary" id="retrievePageTitle">Retrieve page title from index</button>
                     </form>
 
-                    <button type="button" class="btn btn-primary">Clear everything</button>
+                    <button type="button" class="btn btn-primary" id="stopWorkers">Stop workers</button>
+                    <button type="button" class="btn btn-primary" id="clearEverything">Clear table and queue</button>
                 </div>
             </div>
             <div class="col-md-6">
