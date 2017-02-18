@@ -72,6 +72,11 @@ function clearErrorLog() {
     $('#errorLogList').empty();
 }
 
+function renderModal(title, body) {
+    $('#modalTitle').text(title);
+    $('#modalBody').text(body);
+}
+
 // controller logic
 
 function request(requestType, webMethodName, params, successCallback, failureCallback) {
@@ -86,11 +91,11 @@ function request(requestType, webMethodName, params, successCallback, failureCal
         formattedData = formattedData.concat('}')
     }
 
-    if (successCallback == null) {
+    if (successCallback === null) {
         successCallback = () => { }
     }
 
-    if (failureCallback == null) {
+    if (failureCallback === null) {
         failureCallback = () => {}
     }
 
@@ -100,7 +105,7 @@ function request(requestType, webMethodName, params, successCallback, failureCal
         data: formattedData,
         contentType: "application/json; charset=utf-8",
         dataType: "json",
-    }).done(data => successCallback(data.d)
+    }).done(data => successCallback(JSON.parse(data.d))
     ).fail(failureCallback);
 }
 
@@ -108,13 +113,11 @@ function request(requestType, webMethodName, params, successCallback, failureCal
 $(document).ready(function () {
     renderStats('47%', '31mb', '4,802', '7', '1,201 rows');
 
-    let workers = [
-        new Worker('1', WORKER_CRAWLING),
-        new Worker('2', WORKER_LOADING),
-        new Worker('3', WORKER_LOADING),
-        new Worker('4', WORKER_IDLE),
-    ];
-    renderWorkerTable(workers);
+    request('POST', 'RetrieveWorkerStatus', null, worker_objects => {
+        console.log('worker data');
+        let workers = worker_objects.map(worker_object => new Worker(worker_object.id, worker_object.state));
+        renderWorkerTable(workers);
+    });
 
     let errorLog = [
         'stuff went wrong here because X',
@@ -123,7 +126,6 @@ $(document).ready(function () {
     renderErrorLog(errorLog);
 
     $('#startCrawling').click(click => {
-        console.log('start crawling');
         let url = $('#rootCrawlUrl').val();
         request('POST', 'startCrawling', {'robotsURL': url});
 
@@ -132,7 +134,8 @@ $(document).ready(function () {
     $('#retrievePageTitle').click(() => {
         let url = $('#indexedUrl').val();
         request('POST', 'RetrievePageTitle', { 'url': url }, (title) => {
-            console.log(title); 
+            renderModal('Page title', title);
+            $('#mainModal').modal('show')
         });
     });
 
