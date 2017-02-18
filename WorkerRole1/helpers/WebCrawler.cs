@@ -18,9 +18,22 @@ namespace WorkerRole1.helpers
     public class WebCrawler
     {
         public string Url { get; set; }
+
+        private CloudQueue urlQueue;
         public WebCrawler(string url)
         {
             this.Url = url;
+
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
+                ConfigurationManager.AppSettings["StorageConnectionString"]
+            );
+            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+            urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+        }
+
+        public void parseHtml()
+        {
+
         }
 
         public void parseSitemap()
@@ -71,18 +84,22 @@ namespace WorkerRole1.helpers
             }
         }
 
+        private bool isUrlValid(string url)
+        {
+            return true;
+        }
+
         private void addUrlToQueue(string url)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            if (isUrlValid(url))
+            {
 
-            UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
+                UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
 
-            CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
-            urlQueue.AddMessage(urlMessage);
+                CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
+                urlQueue.AddMessage(urlMessage);
+            }
+
         }
     }
 }

@@ -7,15 +7,20 @@ using System.Threading.Tasks;
 
 namespace SharedCode
 {
-    public class Disallow : TableEntity
+    public class DisallowEntity : TableEntity
     {
         public const string TABLE_DISALLOW = "disallow";
 
-        public Disallow() { }
-        public Disallow(string path, string website)
+        public DisallowEntity() { }
+        public DisallowEntity(string path, string website)
         {
             this.PartitionKey = website;
             this.RowKey = path.Replace("/", "$");
+        }
+
+        public override string ToString()
+        {
+            return this.RowKey.Replace("$", "/");
         }
     }
 }

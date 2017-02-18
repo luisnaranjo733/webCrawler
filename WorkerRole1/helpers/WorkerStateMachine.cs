@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using SharedCode;
 using System;
@@ -28,7 +29,7 @@ namespace WorkerRole1.helpers
 
             TableOperation retrieveOperation = TableOperation.Retrieve<WorkerRoleInstance>(WorkerRoleInstance.TABLE_WORKER_ROLES, workerID);
             TableResult retrievedResult = workerRoleTable.Execute(retrieveOperation);
-            if (retrievedResult.Result == null) // create worker role if not found (should never happen)
+            if (retrievedResult.Result == null) 
             {
                 workerRoleInstance = new WorkerRoleInstance(workerID, STATE_IDLE);
                 TableOperation insertOperation = TableOperation.InsertOrReplace(workerRoleInstance);
@@ -38,7 +39,48 @@ namespace WorkerRole1.helpers
                 workerRoleInstance = (WorkerRoleInstance)retrievedResult.Result;
                 this.setState(STATE_IDLE);
             }
-            
+        }
+
+        public bool Act(UrlEntity urlEntity, DisallowCache disallowCache)
+        {
+            if (getState() == STATE_LOADING) // loading code
+            {
+                return load(urlEntity, disallowCache);
+            }
+            else if (getState() == STATE_CRAWLING) // crawling code
+            {
+                return crawl(urlEntity, disallowCache);
+            }
+            return false;
+        }
+
+        private bool load(UrlEntity urlEntity, DisallowCache disallowCache)
+        {
+            if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_SITEMAP)
+            {
+                WebCrawler webCrawler = new WebCrawler(urlEntity.RowKey);
+                webCrawler.parseSitemap(); // crawls xml, adds leaf html urls to queue
+                return true;
+            }
+            else if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+            {
+                // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
+                // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
+                setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
+                // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
+                return false;
+            }
+            return false; // should never happen
+        }
+
+        private bool crawl(UrlEntity urlEntity, DisallowCache disallowCache)
+        {
+            if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+            {
+                WebCrawler webCrawler = new WebCrawler(urlEntity.RowKey);
+                webCrawler.parseHtml();
+            }
+            return true;
         }
 
         public bool setState(string state)

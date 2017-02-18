@@ -32,7 +32,7 @@ namespace WebRole1
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
 
-            CloudTable disallowTable = tableClient.GetTableReference(Disallow.TABLE_DISALLOW);
+            CloudTable disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
             disallowTable.CreateIfNotExists();
 
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
@@ -76,7 +76,7 @@ namespace WebRole1
                 else if (directive == "Disallow")
                 {
                     // add line to disallow table
-                    Disallow disallow = new Disallow(data, new Uri(robotsURL).Host);
+                    DisallowEntity disallow = new DisallowEntity(data, new Uri(robotsURL).Host);
                     TableOperation insertOperation = TableOperation.InsertOrReplace(disallow);
                     disallowTable.Execute(insertOperation);
                 }
@@ -158,7 +158,7 @@ namespace WebRole1
 
             CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
             CloudQueue commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
-            CloudTable disallowTable = tableClient.GetTableReference(Disallow.TABLE_DISALLOW);
+            CloudTable disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
             CloudTable workerRoleTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
             CloudTable urlEntityTable = tableClient.GetTableReference(UrlEntity.TABLE_URL);
 

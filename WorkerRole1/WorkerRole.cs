@@ -23,6 +23,7 @@ namespace WorkerRole1
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
         private WorkerStateMachine workerStateMachine;
+        private DisallowCache disallowCache;
 
         public override void Run()
         {
@@ -104,6 +105,8 @@ namespace WorkerRole1
                     if (commandMessage.AsString == Command.COMMAND_START)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_LOADING);
+                        await Task.Delay(1000); // wait a second to make sure disallow table data gets loaded before trying to fetch it, just to be safe
+                        disallowCache = new DisallowCache();
                     } else if (commandMessage.AsString == Command.COMMAND_STOP)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_IDLE);
@@ -111,32 +114,17 @@ namespace WorkerRole1
                     commandQueue.DeleteMessage(commandMessage);
                 }
 
-                if (workerStateMachine.getState() != WorkerStateMachine.STATE_IDLE)
+                if (workerStateMachine.getState() != WorkerStateMachine.STATE_IDLE) // in loading or crawling state
                 {
-                    CloudQueueMessage urlMessage = urlQueue.GetMessage();
-                    if (urlMessage != null)
+                    CloudQueueMessage urlMessage = urlQueue.GetMessage(); 
+                    if (urlMessage != null) // got url from queue of sitemap or urlset
                     {
+                        // load or crawl with UrlEntity depending on current state 
                         UrlEntity urlEntity = UrlEntity.Parse(urlMessage.AsString);
-                        if (workerStateMachine.getState() == WorkerStateMachine.STATE_LOADING)
+                        bool deleteMessage = workerStateMachine.Act(urlEntity, disallowCache);
+                        if (deleteMessage)
                         {
-                            if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_SITEMAP)
-                            {
-                                WebCrawler webCrawler = new WebCrawler(urlEntity.RowKey);
-                                webCrawler.parseSitemap(); // crawls xml, adds leaf html urls to queue
-                                urlQueue.DeleteMessage(urlMessage);
-                            }
-                            else if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
-                            {
-                                // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
-                                // loading and can transition to crawling state
-                                workerStateMachine.setState(WorkerStateMachine.STATE_CRAWLING);
-                                // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
-                            }
-
-                        }
-                        else if(workerStateMachine.getState() == WorkerStateMachine.STATE_CRAWLING)
-                        {
-
+                            urlQueue.DeleteMessage(urlMessage);
                         }
                     }
                 }
