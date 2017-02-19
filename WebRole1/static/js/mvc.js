@@ -88,15 +88,15 @@ function request(requestType, webMethodName, params, successCallback, failureCal
             formattedData = formattedData.concat(`"${key}": "${value}",`);
         }
         formattedData = formattedData.slice(0, formattedData.length - 1); // remove last trailing comma
-        formattedData = formattedData.concat('}')
+        formattedData = formattedData.concat('}');
     }
 
     if (successCallback === null) {
-        successCallback = () => { }
+        successCallback = () => { };
     }
 
     if (failureCallback === null) {
-        failureCallback = () => {}
+        failureCallback = () => { };
     }
 
     $.ajax({
@@ -104,14 +104,21 @@ function request(requestType, webMethodName, params, successCallback, failureCal
         url: `Admin.asmx/${webMethodName}`,
         data: formattedData,
         contentType: "application/json; charset=utf-8",
-        dataType: "json",
+        dataType: "json"
     }).done(data => successCallback(JSON.parse(data.d))
     ).fail(failureCallback);
 }
 
 
 $(document).ready(function () {
-    renderStats('47%', '31mb', '4,802', '7', '1,201 rows');
+    request('POST', 'RetrieveStats', null, stats => {
+        console.log('STATS');
+        console.log(stats);
+        renderStats(...stats);
+    });
+
+    //renderStats('47%', '31mb', '4,802', '7', '1,201 rows');
+
 
     request('POST', 'RetrieveWorkerStatus', null, worker_objects => {
         console.log('worker data');
@@ -121,7 +128,7 @@ $(document).ready(function () {
 
     let errorLog = [
         'stuff went wrong here because X',
-        'stuff went wrong over there because Z',
+        'stuff went wrong over there because Z'
     ];
     renderErrorLog(errorLog);
 
@@ -135,16 +142,16 @@ $(document).ready(function () {
         let url = $('#indexedUrl').val();
         request('POST', 'RetrievePageTitle', { 'url': url }, (title) => {
             renderModal('Page title', title);
-            $('#mainModal').modal('show')
+            $('#mainModal').modal('show');
         });
     });
 
     $('#stopWorkers').click(() => {
         request('POST', 'StopWorkers');
-    })
+    });
 
     $('#clearEverything').click(() => {
         request('POST', 'ClearEverything');
-    })
+    });
 
 });

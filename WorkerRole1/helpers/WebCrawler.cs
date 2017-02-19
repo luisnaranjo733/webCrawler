@@ -17,13 +17,14 @@ namespace WorkerRole1.helpers
 {
     public class WebCrawler
     {
-        public string Url { get; set; }
+        private DisallowCache disallowCache;
+        public StatsManager statsManager;
 
         private CloudQueue urlQueue;
-        public WebCrawler(string url)
+        public WebCrawler()
         {
-            this.Url = url;
-
+            this.disallowCache = new DisallowCache();
+            this.statsManager = new StatsManager();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
@@ -31,17 +32,12 @@ namespace WorkerRole1.helpers
             urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
         }
 
-        public void parseHtml()
+        public void parseHtml(string url)
         {
 
         }
 
-        public void parseSitemap()
-        {
-            this.parseSitemap(Url);
-        }
-
-        private void parseSitemap(string url)
+        public void parseSitemap(string url)
         {
             WebRequest request = WebRequest.Create(url);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -52,37 +48,53 @@ namespace WorkerRole1.helpers
             XmlElement root = xmlDoc.DocumentElement;
             if (root.Name == "sitemapindex")
             {
-                enumerateXmlDoc(root, parseSitemap);
+                foreach (XmlNode itemElement in root.ChildNodes)
+                {
+                    string childUrl = "";
+                    string childDate = "";
+                    foreach (XmlNode child in itemElement.ChildNodes)
+                    {
+                        if (child.Name == "loc")
+                        {
+                            childUrl = child.InnerText;
+                        }
+                        else if (child.Name == "lastmod")
+                        {
+                            childDate = child.InnerText;
+                        }
+                    }
+                    if (childUrl.Length > 0)
+                    {
+                        parseSitemap(childUrl);
+                    }
+                }
             }
             else if (root.Name == "urlset")
             {
-                enumerateXmlDoc(root, addUrlToQueue);
+                foreach (XmlNode itemElement in root.ChildNodes)
+                {
+                    string childUrl = "";
+                    string childDate = "";
+                    foreach (XmlNode child in itemElement.ChildNodes)
+                    {
+                        if (child.Name == "loc")
+                        {
+                            childUrl = child.InnerText;
+                        }
+                        else if (child.Name == "lastmod")
+                        {
+                            childDate = child.InnerText;
+                        }
+                    }
+                    if (childUrl.Length > 0)
+                    {
+                        addUrlToQueue(childUrl);
+                    }
+                }
             }
         }
 
-        private void enumerateXmlDoc(XmlElement root, Action<string> callback)
-        {
-            foreach (XmlNode itemElement in root.ChildNodes)
-            {
-                string childUrl = "";
-                string childDate = "";
-                foreach (XmlNode child in itemElement.ChildNodes)
-                {
-                    if (child.Name == "loc")
-                    {
-                        childUrl = child.InnerText;
-                    }
-                    else if (child.Name == "lastmod")
-                    {
-                        childDate = child.InnerText;
-                    }
-                }
-                if (childUrl.Length > 0)
-                {
-                    callback(childUrl);
-                }
-            }
-        }
+
 
         private bool isUrlValid(string url)
         {
@@ -91,14 +103,10 @@ namespace WorkerRole1.helpers
 
         private void addUrlToQueue(string url)
         {
-            if (isUrlValid(url))
-            {
+            UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
 
-                UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
-
-                CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
-                urlQueue.AddMessage(urlMessage);
-            }
+            CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
+            urlQueue.AddMessage(urlMessage);
 
         }
     }

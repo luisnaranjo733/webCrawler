@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace WorkerRole1.helpers
 {
-    class DisallowCache
+    public class DisallowCache
     {
         private CloudTable disallowTable;
         private List<string> disallowList;
@@ -22,7 +22,12 @@ namespace WorkerRole1.helpers
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
             disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
+            refreshCache();
+        }
 
+        public void refreshCache()
+        {
+            disallowList.Clear();
             TableQuery<DisallowEntity> query = new TableQuery<DisallowEntity>();
 
             foreach (DisallowEntity entity in disallowTable.ExecuteQuery(query))

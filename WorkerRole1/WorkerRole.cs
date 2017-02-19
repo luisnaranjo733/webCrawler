@@ -23,7 +23,7 @@ namespace WorkerRole1
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
         private WorkerStateMachine workerStateMachine;
-        private DisallowCache disallowCache;
+        private WebCrawler webCrawler;
 
         public override void Run()
         {
@@ -106,7 +106,7 @@ namespace WorkerRole1
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_LOADING);
                         await Task.Delay(1000); // wait a second to make sure disallow table data gets loaded before trying to fetch it, just to be safe
-                        disallowCache = new DisallowCache();
+                        webCrawler = new WebCrawler();
                     } else if (commandMessage.AsString == Command.COMMAND_STOP)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_IDLE);
@@ -121,7 +121,7 @@ namespace WorkerRole1
                     {
                         // load or crawl with UrlEntity depending on current state 
                         UrlEntity urlEntity = UrlEntity.Parse(urlMessage.AsString);
-                        bool deleteMessage = workerStateMachine.Act(urlEntity, disallowCache);
+                        bool deleteMessage = workerStateMachine.Act(urlEntity, webCrawler);
                         if (deleteMessage)
                         {
                             urlQueue.DeleteMessage(urlMessage);
@@ -132,5 +132,6 @@ namespace WorkerRole1
                 await Task.Delay(1000);
             }
         }
+
     }
 }

@@ -10,6 +10,7 @@ using System.Web.Script.Serialization;
 using System.Web.Script.Services;
 using System.Web.Services;
 using Microsoft.WindowsAzure.Storage.Queue;
+using WorkerRole1.helpers;
 
 namespace WebRole1
 {
@@ -101,6 +102,14 @@ namespace WebRole1
         {
             string title = "test title";
             return new JavaScriptSerializer().Serialize(title);
+        }
+
+        [WebMethod]
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string RetrieveStats()
+        {
+            List<string> stats = StatsManager.GetStats();
+            return new JavaScriptSerializer().Serialize(stats);
         }
 
         [WebMethod]

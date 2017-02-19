@@ -19,6 +19,8 @@ namespace WorkerRole1.helpers
 
         private WorkerRoleInstance workerRoleInstance;
         private CloudTable workerRoleTable;
+        private int nUrlsCrawled;
+
         public WorkerStateMachine(string workerID)
         {
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
@@ -32,7 +34,7 @@ namespace WorkerRole1.helpers
             if (retrievedResult.Result == null) 
             {
                 workerRoleInstance = new WorkerRoleInstance(workerID, STATE_IDLE);
-                TableOperation insertOperation = TableOperation.InsertOrReplace(workerRoleInstance);
+                TableOperation insertOperation = TableOperation.Insert(workerRoleInstance);
                 workerRoleTable.Execute(insertOperation);
             } else
             {
@@ -41,46 +43,42 @@ namespace WorkerRole1.helpers
             }
         }
 
-        public bool Act(UrlEntity urlEntity, DisallowCache disallowCache)
+        public bool Act(UrlEntity urlEntity, WebCrawler webCrawler)
         {
+            nUrlsCrawled += 1;
+
+            if (nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
+            {
+                webCrawler.statsManager.UpdateStats();
+            }
+
             if (getState() == STATE_LOADING) // loading code
             {
-                return load(urlEntity, disallowCache);
+                webCrawler.statsManager.UpdateStats(); // manual update stats on each url during loading phase only
+                if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_SITEMAP)
+                {
+                    webCrawler.parseSitemap(urlEntity.RowKey); // crawls xml, adds leaf html urls to queue
+                    return true;
+                }
+                else if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+                {
+                    // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
+                    // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
+                    setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
+                                                                 // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
+                    return false;
+                }
+                return false; // should never happen
             }
             else if (getState() == STATE_CRAWLING) // crawling code
             {
-                return crawl(urlEntity, disallowCache);
-            }
-            return false;
-        }
-
-        private bool load(UrlEntity urlEntity, DisallowCache disallowCache)
-        {
-            if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_SITEMAP)
-            {
-                WebCrawler webCrawler = new WebCrawler(urlEntity.RowKey);
-                webCrawler.parseSitemap(); // crawls xml, adds leaf html urls to queue
+                if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+                {
+                    webCrawler.parseHtml(urlEntity.RowKey);
+                }
                 return true;
             }
-            else if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
-            {
-                // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
-                // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
-                setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
-                // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
-                return false;
-            }
-            return false; // should never happen
-        }
-
-        private bool crawl(UrlEntity urlEntity, DisallowCache disallowCache)
-        {
-            if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
-            {
-                WebCrawler webCrawler = new WebCrawler(urlEntity.RowKey);
-                webCrawler.parseHtml();
-            }
-            return true;
+            return false;
         }
 
         public bool setState(string state)

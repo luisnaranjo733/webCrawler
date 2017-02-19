@@ -77,10 +77,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="helpers\DisallowCache.cs" />
+    <Compile Include="helpers\StatsManager.cs" />
     <Compile Include="helpers\WebCrawler.cs" />
     <Compile Include="helpers\WorkerStateMachine.cs" />
     <Compile Include="models\Command.cs" />
     <Compile Include="models\DisallowEntity.cs" />
+    <Compile Include="models\StatEntity.cs" />
     <Compile Include="models\UrlEntity.cs" />
     <Compile Include="models\WorkerRoleInstance.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

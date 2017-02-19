@@ -124,6 +124,10 @@
     <Compile Include="WebRole.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ClassLibrary2\SharedCodeLibrary.csproj">
+      <Project>{ecdbd39e-36fa-4e3f-b01a-f0081f6ca646}</Project>
+      <Name>SharedCodeLibrary</Name>
+    </ProjectReference>
     <ProjectReference Include="..\WorkerRole1\WorkerRole1.csproj">
       <Project>{E1DBC321-8E28-46B1-8BCE-7C57C393ED1C}</Project>
       <Name>WorkerRole1</Name>
