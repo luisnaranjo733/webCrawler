@@ -72,6 +72,22 @@ function clearErrorLog() {
     $('#errorLogList').empty();
 }
 
+function renderRecentlyCrawled(recentlyCrawled) {
+    for(let url of recentlyCrawled) {
+        let li = $('<li/>');
+        li.addClass("list-group-item");
+        li.text(url);
+
+        $('#crawledList').append(li);
+    }
+}
+
+function clearRecentlyCrawled() {
+    $('#crawledList').empty();
+}
+
+
+
 function renderModal(title, body) {
     $('#modalTitle').text(title);
     $('#modalBody').text(body);
@@ -109,33 +125,66 @@ function request(requestType, webMethodName, params, successCallback, failureCal
     ).fail(failureCallback);
 }
 
-
-$(document).ready(function () {
+function updateStats() {
     request('POST', 'RetrieveStats', null, stats => {
-        console.log('STATS');
-        console.log(stats);
         renderStats(...stats);
     });
+}
 
-    //renderStats('47%', '31mb', '4,802', '7', '1,201 rows');
-
-
+function updateWorkerStatus() {
     request('POST', 'RetrieveWorkerStatus', null, worker_objects => {
-        console.log('worker data');
         let workers = worker_objects.map(worker_object => new Worker(worker_object.id, worker_object.state));
+        clearWorkerTable();
         renderWorkerTable(workers);
     });
+}
 
-    let errorLog = [
-        'stuff went wrong here because X',
-        'stuff went wrong over there because Z'
-    ];
-    renderErrorLog(errorLog);
+
+function workerStatsLoop() {
+    setTimeout(() => {
+        updateWorkerStatus();
+        workerStatsLoop();
+    }, 2000)
+}
+
+$(document).ready(function () {
+    updateStats();
+    workerStatsLoop();
+
+    $('#queueBleacher').click(click => {
+        let url = "http://bleacherreport.com/robots.txt";
+        request('POST', 'queueSitemap', { 'robotsURL': url }, () => {
+            //updatestats();
+        });
+
+    });
+
+    $('#queueCnn').click(click => {
+        let url = "http://www.cnn.com/robots.txt";
+        request('POST', 'queueSitemap', { 'robotsURL': url }, () => {
+            //updateStats();
+        });
+    });
+
+    $('#startLoading').click(click => {
+        request('POST', 'StartLoading', null, () => {
+            //updateWorkerStatus();
+            //updateStats();
+        });
+    });
 
     $('#startCrawling').click(click => {
-        let url = $('#rootCrawlUrl').val();
-        request('POST', 'startCrawling', {'robotsURL': url});
+        request('POST', 'StartCrawling', null, () => {
+            //updateWorkerStatus();
+            //updateStats();
+        });
+    });
 
+    $('#startIdling').click(click => {
+        request('POST', 'StartIdling', null, () => {
+            //updateWorkerStatus();
+            //updateStats();
+        });
     });
 
     $('#retrievePageTitle').click(() => {
@@ -146,12 +195,27 @@ $(document).ready(function () {
         });
     });
 
-    $('#stopWorkers').click(() => {
-        request('POST', 'StopWorkers');
+    request('POST', 'GetErrorLog', null, (errorLog) => {
+        renderErrorLog(errorLog);
     });
 
-    $('#clearEverything').click(() => {
-        request('POST', 'ClearEverything');
+    request('POST', 'GetRecentUrlsCrawled', { 'n': 10 }, (crawledList) => {
+        console.log('crawled list');
+        console.log(crawledList);
+        renderRecentlyCrawled(crawledList);
     });
 
+    $('#deleteEverything').click(() => {
+        request('POST', 'DeleteEverything');
+    });
+
+    $('#clearUrlQueue').click(() => {
+        request('POST', 'ClearUrlQueue');
+    });
+
+
+    $('#refreshStats').click(() => {
+        console.log('refresh button clicked');
+        updateStats();
+    });
 });

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedCode
+namespace SharedCodeLibrary.models
 {
     public class WorkerRoleInstance : TableEntity
     {

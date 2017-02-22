@@ -3,13 +3,15 @@
   <Role name="WebRole1">
     <Instances count="1" />
     <ConfigurationSettings>
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=info344webcrawlerservice;AccountKey=Cv5RXf/HLxjnQqdisNkKJbnXs06Lb2Bs6AhXesFfxETDorZD1Q3dvaWeT7YLjNVa9f/ceaILyz+tbPhvvlfbYw==" />
+      <Setting name="APPINSIGHTS_INSTRUMENTATIONKEY" value=" b104ba62-42b4-49ad-850f-34bfb4bf9cfa" />
     </ConfigurationSettings>
   </Role>
   <Role name="WorkerRole1">
     <Instances count="1" />
     <ConfigurationSettings>
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=info344webcrawlerservice0;AccountKey=Cv5RXf/HLxjnQqdisNkKJbnXs06Lb2Bs6AhXesFfxETDorZD1Q3dvaWeT7YLjNVa9f/ceaILyz+tbPhvvlfbYw==" />
+      <Setting name="APPINSIGHTS_INSTRUMENTATIONKEY" value=" b104ba62-42b4-49ad-850f-34bfb4bf9cfa" />
     </ConfigurationSettings>
   </Role>
 </ServiceConfiguration>

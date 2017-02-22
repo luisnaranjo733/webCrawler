@@ -11,9 +11,9 @@ using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
 using System.Configuration;
 using Microsoft.WindowsAzure.Storage.Table;
-using SharedCode;
 using Microsoft.WindowsAzure.Storage.Queue;
 using WorkerRole1.helpers;
+using SharedCodeLibrary.models;
 
 namespace WorkerRole1
 {
@@ -23,6 +23,8 @@ namespace WorkerRole1
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
         private WorkerStateMachine workerStateMachine;
+        private StatsManager statsManager;
+        private WebLoader webLoader;
         private WebCrawler webCrawler;
 
         public override void Run()
@@ -58,6 +60,9 @@ namespace WorkerRole1
             }
 
             workerStateMachine = new WorkerStateMachine(instanceID.ToString());
+
+            webCrawler = new WebCrawler(statsManager);
+
             return result;
         }
 
@@ -90,9 +95,6 @@ namespace WorkerRole1
             CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
             commandQueue.CreateIfNotExists();
 
-            //CloudTable workerRoleTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
-
-
             // TODO: Replace the following with your own logic.
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -102,14 +104,16 @@ namespace WorkerRole1
                 CloudQueueMessage commandMessage = commandQueue.GetMessage(TimeSpan.FromMinutes(5));
                 if (commandMessage != null)
                 {
-                    if (commandMessage.AsString == Command.COMMAND_START)
+                    if (commandMessage.AsString == Command.COMMAND_LOAD)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_LOADING);
-                        await Task.Delay(1000); // wait a second to make sure disallow table data gets loaded before trying to fetch it, just to be safe
-                        webCrawler = new WebCrawler();
-                    } else if (commandMessage.AsString == Command.COMMAND_STOP)
+                        webLoader = new WebLoader();
+                    } else if (commandMessage.AsString == Command.COMMAND_IDLE)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_IDLE);
+                    } else if (commandMessage.AsString == Command.COMMAND_CRAWL)
+                    {
+                        workerStateMachine.setState(WorkerStateMachine.STATE_CRAWLING);
                     }
                     commandQueue.DeleteMessage(commandMessage);
                 }
@@ -121,7 +125,7 @@ namespace WorkerRole1
                     {
                         // load or crawl with UrlEntity depending on current state 
                         UrlEntity urlEntity = UrlEntity.Parse(urlMessage.AsString);
-                        bool deleteMessage = workerStateMachine.Act(urlEntity, webCrawler);
+                        bool deleteMessage = workerStateMachine.Act(urlEntity, webLoader, webCrawler);
                         if (deleteMessage)
                         {
                             urlQueue.DeleteMessage(urlMessage);
@@ -129,7 +133,7 @@ namespace WorkerRole1
                     }
                 }
                 
-                await Task.Delay(1000);
+                await Task.Delay(100);
             }
         }
 

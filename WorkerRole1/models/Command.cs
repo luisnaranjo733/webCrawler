@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedCode
+namespace SharedCodeLibrary.models
 {
     public class Command
     {
         public const string QUEUE_COMMAND = "command";
-        public const string COMMAND_START = "start";
-        public const string COMMAND_STOP = "stop";
+        public const string COMMAND_LOAD = "load";
+        public const string COMMAND_CRAWL = "crawl";
+        public const string COMMAND_IDLE = "idle";
     }
 }

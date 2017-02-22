@@ -1,16 +1,17 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
-using SharedCode;
+using SharedCodeLibrary.models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WorkerRole1.interfaces;
 
-namespace WorkerRole1.helpers
+namespace SharedCodeLibrary.helpers
 {
-    public class DisallowCache
+    public class DisallowCache : IDisallowCache
     {
         private CloudTable disallowTable;
         private List<string> disallowList;
@@ -32,13 +33,25 @@ namespace WorkerRole1.helpers
 
             foreach (DisallowEntity entity in disallowTable.ExecuteQuery(query))
             {
-                disallowList.Add(entity.ToString());
+                disallowList.Add(entity.ToString().Replace("/", ""));
             }
         }
 
-        public bool isUrlAllowed(string path)
+        public bool isUrlAllowed(Uri uri)
         {
-            return disallowList.Contains(path);
+            if (uri.Segments.Length == 0)
+            {
+                return false;
+            }
+
+            foreach(string segment in uri.Segments)
+            {
+                if (disallowList.Contains(segment.Replace("/", "")))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

@@ -5,11 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage.Table;
 
-namespace SharedCode
+namespace SharedCodeLibrary.models
 {
-    public class UrlEntity : TableEntity
+    public class UrlEntity
     {
-        public const string TABLE_URL = "urlstable";
         public const string QUEUE_URL = "urlsqueue";
 
         public const string URL_TYPE_SITEMAP = "sitemap";
@@ -17,16 +16,17 @@ namespace SharedCode
 
         private const char DELIMITER = ',';
 
-        public UrlEntity() { }
+        public string UrlType { get; set; }
+        public string Url { get; set; }
         public UrlEntity(string urlType, string url)
         {
-            this.PartitionKey = urlType;
-            this.RowKey = url;
+            UrlType = urlType;
+            Url = url;
         }
 
         public override string ToString()
         {
-            return this.PartitionKey + DELIMITER + this.RowKey;
+            return this.UrlType + DELIMITER + this.Url;
         }
 
         public static UrlEntity Parse(string toString)

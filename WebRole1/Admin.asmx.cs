@@ -1,5 +1,4 @@
-﻿using SharedCode;
-using Microsoft.WindowsAzure.Storage;
+﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.Web.Script.Serialization;
 using System.Web.Script.Services;
 using System.Web.Services;
 using Microsoft.WindowsAzure.Storage.Queue;
+using SharedCodeLibrary.models;
 using WorkerRole1.helpers;
 
 namespace WebRole1
@@ -24,34 +24,63 @@ namespace WebRole1
     [System.Web.Script.Services.ScriptService]
     public class Admin : WebService
     {
+        CloudTable disallowTable;
+        CloudTable workerTable;
+        CloudTable indexTable;
+        CloudQueue urlQueue;
+        CloudQueue commandQueue;
 
-        [WebMethod]
-        public void StartCrawling(string robotsURL)
+        StatsManager statsManager;
+        public Admin()
         {
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
-            CloudTable disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
+            disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
             disallowTable.CreateIfNotExists();
 
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            workerTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
+            workerTable.CreateIfNotExists();
+
+            indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            indexTable.CreateIfNotExists();
+
+            urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
             urlQueue.CreateIfNotExists();
 
-            // send start command so that workers transition to "loading"
-            CloudQueue commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
+            commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
             commandQueue.CreateIfNotExists();
 
+            statsManager = new StatsManager();
+        }
+
+        [WebMethod]
+        public void QueueSitemap(string robotsURL)
+        {
+
             WebRequest request = WebRequest.Create(robotsURL);
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            HttpWebResponse response;
+            try
+            {
+                response = (HttpWebResponse)request.GetResponse();
+            } catch(WebException e)
+            {
+                Logger.Instance.Log(Logger.LOG_ERROR, "QueueSitemap web request failed");
+                return;
+            }
+            
             Stream dataStream = response.GetResponseStream();
 
             StreamReader reader = new StreamReader(dataStream);
             string data;
             // Read and display lines from the file until the end of 
             // the file is reached.
+
+            //urlQueue.FetchAttributes();
+            //if (urlQueue.ApproximateMessageCount < 15) { return; } // don't add root sitemap urls to the queue if the queue is not empty
 
             while ((data = reader.ReadLine()) != null)
             {
@@ -80,17 +109,34 @@ namespace WebRole1
                     DisallowEntity disallow = new DisallowEntity(data, new Uri(robotsURL).Host);
                     TableOperation insertOperation = TableOperation.InsertOrReplace(disallow);
                     disallowTable.Execute(insertOperation);
-                }
-                
+                }   
             }
-
             dataStream.Close();
             response.Close();
-
-            CloudQueueMessage startMessage = new CloudQueueMessage(Command.COMMAND_START);
-            commandQueue.AddMessage(startMessage);
         }
 
+        [WebMethod]
+        public void StartLoading()
+        {
+            CloudQueueMessage startMessage = new CloudQueueMessage(Command.COMMAND_LOAD);
+            commandQueue.AddMessage(startMessage);
+            //statsManager.updateStat(StatsManager., statsManager.getSizeOfQueue());
+        }
+
+        [WebMethod]
+        public void StartCrawling()
+        {
+            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_CRAWL);
+            commandQueue.AddMessage(stopMessage);
+        }
+
+
+        [WebMethod]
+        public void StartIdling()
+        {
+            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_IDLE);
+            commandQueue.AddMessage(stopMessage);
+        }
 
         /* Retrieve page title for a specific url from index
          * Param: url to use in index search
@@ -100,14 +146,32 @@ namespace WebRole1
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrievePageTitle(string url)
         {
-            string title = "test title";
+            string title = "index not found :(";
+
+            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, IndexEntity.Base64Encode(url)));
+
+            IndexEntity index = null;
+            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            {
+                index = entity;
+                break;
+            }
+            if (index != null)
+            {
+                title = index.Title;
+            } 
             return new JavaScriptSerializer().Serialize(title);
         }
+
+
 
         [WebMethod]
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrieveStats()
         {
+            statsManager.updateStat(StatsManager.SIZE_OF_QUEUE, statsManager.getSizeOfQueue());
+            //statsManager.updateStat(StatsManager.SIZE_OF_TABLE, statsManager.getSizeOfTable());
             List<string> stats = StatsManager.GetStats();
             return new JavaScriptSerializer().Serialize(stats);
         }
@@ -116,20 +180,12 @@ namespace WebRole1
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrieveWorkerStatus()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            
-            CloudTable table = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
-
             List<Dictionary<string, string>> collection = new List<Dictionary<string, string>>();
-            if (table.Exists())
+            if (workerTable.Exists())
             {
                 TableQuery<WorkerRoleInstance> query = new TableQuery<WorkerRoleInstance>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WorkerRoleInstance.TABLE_WORKER_ROLES));
 
-                foreach (WorkerRoleInstance entity in table.ExecuteQuery(query))
+                foreach (WorkerRoleInstance entity in workerTable.ExecuteQuery(query))
                 {
                     Dictionary<string, string> workerRoleDict = new Dictionary<string, string>();
                     workerRoleDict.Add("id", entity.RowKey);
@@ -142,45 +198,96 @@ namespace WebRole1
         }
 
         [WebMethod]
-        public void StopWorkers()
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string GetErrorLog()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            CloudQueue commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
- 
+            List<string> errorLog = new List<string>();
+            
+            if (errorLog.Count == 0)
+            {
+                errorLog.Add("No errors yet :)");
+            }
 
-
-            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_STOP);
-            commandQueue.AddMessage(stopMessage);
+            Logger.Instance.RetrieveEntries();
+            return new JavaScriptSerializer().Serialize(errorLog);
         }
 
         [WebMethod]
-        public void ClearEverything()
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string GetRecentUrlsCrawled(int n)
         {
+            List<string> results = new List<string>();
+
+            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>();
+
+            int i = 0;
+            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            {
+                if (i == n) { break; }
+                i++;
+                results.Add(IndexEntity.Base64Decode(entity.PartitionKey));
+            }
+
+            if (results.Count == 0)
+            {
+                results.Add("Index is empty");
+            }
+
+            return new JavaScriptSerializer().Serialize(results);
+        }
+
+
+        [WebMethod]
+        public void ClearUrlQueue()
+        {
+            urlQueue.Clear();
+        }
+
+        [WebMethod]
+        public void DeleteEverything()
+        {
+            urlQueue.DeleteIfExists();
+            commandQueue.DeleteIfExists();
+            disallowTable.DeleteIfExists();
+            workerTable.DeleteIfExists();
+            indexTable.DeleteIfExists();
+        }
+
+
+
+        [WebMethod]
+        public void TestIndex(string url, string title)
+        {
+            List<string> indexList = new List<string>();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+            CloudTable indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            indexTable.CreateIfNotExists();
 
-            CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
-            CloudQueue commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
-            CloudTable disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
-            CloudTable workerRoleTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
-            CloudTable urlEntityTable = tableClient.GetTableReference(UrlEntity.TABLE_URL);
+            IndexEntity entity = new IndexEntity(url, title);
+            TableOperation insertOperation = TableOperation.InsertOrReplace(entity);
+            indexTable.Execute(insertOperation);
+        }
 
+        [WebMethod]
+        public List<string> TestIndex2()
+        {
+            List<string> indexList = new List<string>();
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
+                ConfigurationManager.AppSettings["StorageConnectionString"]
+            );
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            CloudTable indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            indexTable.CreateIfNotExists();
 
-            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_STOP);
-            commandQueue.AddMessage(stopMessage);
-
-            urlQueue.DeleteIfExists();
-            commandQueue.DeleteIfExists();
-            disallowTable.DeleteIfExists();
-            //workerRoleTable.DeleteIfExists();
-            urlEntityTable.DeleteIfExists();
-            
+            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>();
+            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            {
+                indexList.Add(entity.ToString());
+            }
+            return indexList;
         }
     }
 }

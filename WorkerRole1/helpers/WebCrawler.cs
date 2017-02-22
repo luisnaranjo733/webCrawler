@@ -1,113 +1,91 @@
-﻿
-
+﻿using HtmlAgilityPack;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
-using SharedCode;
+using Microsoft.WindowsAzure.Storage.Table;
+using SharedCodeLibrary.helpers;
+using SharedCodeLibrary.models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
+using WorkerRole1.interfaces;
+
 
 namespace WorkerRole1.helpers
 {
-    public class WebCrawler
+    class WebCrawler : IWebCrawler
     {
-        private DisallowCache disallowCache;
-        public StatsManager statsManager;
-
+        private HtmlWeb web;
+        private CloudTable urlTable;
+        private Dictionary<string, bool> visitedUrls;
+        private UrlValidator urlValidator;
         private CloudQueue urlQueue;
-        public WebCrawler()
+
+        public WebCrawler(StatsManager statsManager)
         {
-            this.disallowCache = new DisallowCache();
-            this.statsManager = new StatsManager();
+            web = new HtmlWeb();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            urlTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            visitedUrls = new Dictionary<string, bool>();
+            urlValidator = new UrlValidator(new DisallowCache());
+
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+
             urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
         }
 
-        public void parseHtml(string url)
+        public void Crawl(string url)
         {
-
-        }
-
-        public void parseSitemap(string url)
-        {
-            WebRequest request = WebRequest.Create(url);
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-            Stream dataStream = response.GetResponseStream();
-
-            XmlDocument xmlDoc = new XmlDocument();
-            xmlDoc.Load(dataStream);
-            XmlElement root = xmlDoc.DocumentElement;
-            if (root.Name == "sitemapindex")
+            if (!visitedUrls.ContainsKey(url)) 
             {
-                foreach (XmlNode itemElement in root.ChildNodes)
+                HtmlDocument document;
+                try {
+                    document = web.Load(url);
+                } catch
                 {
-                    string childUrl = "";
-                    string childDate = "";
-                    foreach (XmlNode child in itemElement.ChildNodes)
+                    Logger.Instance.Log(Logger.LOG_ERROR, "html dom parsing failed in WebCrawler.Crawl()");
+                    return;
+                }
+                
+
+                HtmlNode[] nodes = document.DocumentNode.SelectNodes("//title").ToArray();
+                string title = "";
+                foreach (HtmlNode item in nodes)
+                {
+                    title = item.InnerHtml;
+                    break; // there should only be one title, if there are more then pick the 1st one arbitrarily
+                }
+
+                IndexEntity indexEntity = new IndexEntity(url, title);
+                TableOperation insertOperation = TableOperation.Insert(indexEntity);
+                urlTable.Execute(insertOperation);
+
+                visitedUrls.Add(url, true);
+
+                nodes = document.DocumentNode.SelectNodes("//a").ToArray();
+                foreach (HtmlNode item in nodes)
+                {
+                    string link = item.GetAttributeValue("href", "");
+                    if (!visitedUrls.ContainsKey(link) && urlValidator.isUriValidBleacher(link))
                     {
-                        if (child.Name == "loc")
-                        {
-                            childUrl = child.InnerText;
-                        }
-                        else if (child.Name == "lastmod")
-                        {
-                            childDate = child.InnerText;
-                        }
-                    }
-                    if (childUrl.Length > 0)
-                    {
-                        parseSitemap(childUrl);
+                        visitedUrls.Add(link, true);
+
+                        UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, link);
+
+                        // Add message
+                        CloudQueueMessage message = new CloudQueueMessage(urlEntity.ToString());
+                        urlQueue.AddMessage(message);
+
                     }
                 }
             }
-            else if (root.Name == "urlset")
-            {
-                foreach (XmlNode itemElement in root.ChildNodes)
-                {
-                    string childUrl = "";
-                    string childDate = "";
-                    foreach (XmlNode child in itemElement.ChildNodes)
-                    {
-                        if (child.Name == "loc")
-                        {
-                            childUrl = child.InnerText;
-                        }
-                        else if (child.Name == "lastmod")
-                        {
-                            childDate = child.InnerText;
-                        }
-                    }
-                    if (childUrl.Length > 0)
-                    {
-                        addUrlToQueue(childUrl);
-                    }
-                }
-            }
-        }
-
-
-
-        private bool isUrlValid(string url)
-        {
-            return true;
-        }
-
-        private void addUrlToQueue(string url)
-        {
-            UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
-
-            CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
-            urlQueue.AddMessage(urlMessage);
 
         }
+
     }
 }

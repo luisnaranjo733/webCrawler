@@ -1,7 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
-using SharedCode;
+using SharedCodeLibrary.models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -9,10 +9,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WorkerRole1.interfaces;
 
 namespace WorkerRole1.helpers
 {
-    public class StatsManager
+    public class StatsManager : IStatsManager
     {
         public const int UPDATE_STATS_FREQ = 3;
         public const string CPU_UTILIZATION = "cpuutilization";
@@ -22,6 +23,7 @@ namespace WorkerRole1.helpers
         public const string SIZE_OF_TABLE = "sizeoftable";
 
         private CloudTable statsTable;
+        private CloudTable indexTable;
         private CloudQueue urlsQueue;
 
         private PerformanceCounter cpuCounter;
@@ -36,6 +38,8 @@ namespace WorkerRole1.helpers
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
             statsTable = tableClient.GetTableReference(StatEntity.TABLE_STATS);
+            statsTable.CreateIfNotExists();
+            indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
             urlsQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
 
             cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
@@ -57,7 +61,7 @@ namespace WorkerRole1.helpers
             updateStat(SIZE_OF_TABLE, getSizeOfTable());
         }
 
-        private void updateStat(string statName, string statValue)
+        public void updateStat(string statName, string statValue)
         {
             TableOperation retrieveOperation = TableOperation.Retrieve<StatEntity>(statName, statName);
             TableResult retrievedResult = statsTable.Execute(retrieveOperation);
@@ -128,7 +132,7 @@ namespace WorkerRole1.helpers
             return "?";
         }
 
-        private string getSizeOfQueue()
+        public string getSizeOfQueue()
         {
             urlsQueue.FetchAttributes();
             int? cachedMessageCount = urlsQueue.ApproximateMessageCount;
@@ -141,7 +145,7 @@ namespace WorkerRole1.helpers
             }
         }
 
-        private string getSizeOfTable()
+        public string getSizeOfTable()
         {
             return "?";
         }

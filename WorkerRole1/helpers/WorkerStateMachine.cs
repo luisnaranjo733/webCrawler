@@ -1,17 +1,18 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
-using SharedCode;
+using SharedCodeLibrary.models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WorkerRole1.interfaces;
 
 namespace WorkerRole1.helpers
 {
-    class WorkerStateMachine : IDisposable
+    class WorkerStateMachine : IDisposable, IWorkerStateMachine
     {
         public const string STATE_IDLE = "idle";
         public const string STATE_LOADING = "loading";
@@ -20,6 +21,7 @@ namespace WorkerRole1.helpers
         private WorkerRoleInstance workerRoleInstance;
         private CloudTable workerRoleTable;
         private int nUrlsCrawled;
+        private StatsManager statsManager;
 
         public WorkerStateMachine(string workerID)
         {
@@ -41,44 +43,40 @@ namespace WorkerRole1.helpers
                 workerRoleInstance = (WorkerRoleInstance)retrievedResult.Result;
                 this.setState(STATE_IDLE);
             }
+            statsManager = new StatsManager();
         }
 
-        public bool Act(UrlEntity urlEntity, WebCrawler webCrawler)
+        public bool Act(UrlEntity urlEntity, IWebLoader webLoader, IWebCrawler webCrawler)
         {
             nUrlsCrawled += 1;
 
-            if (nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
-            {
-                webCrawler.statsManager.UpdateStats();
-            }
-
             if (getState() == STATE_LOADING) // loading code
             {
-                webCrawler.statsManager.UpdateStats(); // manual update stats on each url during loading phase only
-                if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_SITEMAP)
+                statsManager.UpdateStats(); // manual update stats on each url during loading phase only
+                if (urlEntity.UrlType == UrlEntity.URL_TYPE_SITEMAP)
                 {
-                    webCrawler.parseSitemap(urlEntity.RowKey); // crawls xml, adds leaf html urls to queue
-                    return true;
+                    webLoader.parseSitemap(urlEntity.Url); // crawls xml, adds leaf html urls to queue
                 }
-                else if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+                else if (urlEntity.UrlType == UrlEntity.URL_TYPE_HTML)
                 {
                     // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
                     // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
-                    setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
+                    //setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
+                    setState(WorkerStateMachine.STATE_IDLE);
                                                                  // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
                     return false;
                 }
-                return false; // should never happen
             }
             else if (getState() == STATE_CRAWLING) // crawling code
             {
-                if (urlEntity.PartitionKey == UrlEntity.URL_TYPE_HTML)
+                if (nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
                 {
-                    webCrawler.parseHtml(urlEntity.RowKey);
+                    statsManager.UpdateStats(); // can be null
                 }
-                return true;
+
+                webCrawler.Crawl(urlEntity.Url);
             }
-            return false;
+            return true;
         }
 
         public bool setState(string state)
