@@ -11,7 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorkerRole1.interfaces;
-
+using WorkerRole1.models;
 
 namespace WorkerRole1.helpers
 {
@@ -32,7 +32,7 @@ namespace WorkerRole1.helpers
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
             urlTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
             visitedUrls = new Dictionary<string, bool>();
-            urlValidator = new UrlValidator(new DisallowCache());
+            urlValidator = new UrlValidator();
 
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
@@ -48,20 +48,21 @@ namespace WorkerRole1.helpers
                     document = web.Load(url);
                 } catch
                 {
-                    Logger.Instance.Log(Logger.LOG_ERROR, "html dom parsing failed in WebCrawler.Crawl()");
+                    Logger.Instance.Log(Logger.LOG_ERROR, "html dom parsing failed in WebCrawler.Crawl() for " + url);
                     return;
                 }
-                
+
+                Link parentLink = new Link(url);
 
                 HtmlNode[] nodes = document.DocumentNode.SelectNodes("//title").ToArray();
-                string title = "";
+                string title = "Page indexed, but no <title> tag found";
                 foreach (HtmlNode item in nodes)
                 {
                     title = item.InnerHtml;
                     break; // there should only be one title, if there are more then pick the 1st one arbitrarily
                 }
 
-                IndexEntity indexEntity = new IndexEntity(url, title);
+                IndexEntity indexEntity = new IndexEntity(url, title); // also add page date
                 TableOperation insertOperation = TableOperation.Insert(indexEntity);
                 urlTable.Execute(insertOperation);
 
@@ -70,8 +71,9 @@ namespace WorkerRole1.helpers
                 nodes = document.DocumentNode.SelectNodes("//a").ToArray();
                 foreach (HtmlNode item in nodes)
                 {
-                    string link = item.GetAttributeValue("href", "");
-                    if (!visitedUrls.ContainsKey(link) && urlValidator.isUriValidBleacher(link))
+                    string linkPath = item.GetAttributeValue("href", ""); // could be relative or absolute or external
+                    string link = parentLink.buildUrl(linkPath);
+                    if (!visitedUrls.ContainsKey(link) && urlValidator.IsUrlValidCrawling(link))
                     {
                         visitedUrls.Add(link, true);
 

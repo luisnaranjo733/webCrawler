@@ -13,6 +13,7 @@ namespace SharedCodeLibrary.models
         public const string TABLE_INDEX = "pageindex";
 
         public string Title { get; set; }
+        //public DateTime Date { get; set; }
 
         public IndexEntity() { }
         public IndexEntity(string url, string title)

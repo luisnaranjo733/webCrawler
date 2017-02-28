@@ -41,13 +41,22 @@ namespace WorkerRole1.helpers
             } else
             {
                 workerRoleInstance = (WorkerRoleInstance)retrievedResult.Result;
-                this.setState(STATE_IDLE);
+                this.setState(workerRoleInstance.State);
             }
             statsManager = new StatsManager();
         }
 
         public bool Act(UrlEntity urlEntity, IWebLoader webLoader, IWebCrawler webCrawler)
         {
+            if (urlEntity == null) // if url queue is empty
+            {
+                if (getState() == STATE_CRAWLING) // and we are in the crawling state, we must have finished crawling
+                {
+                    setState(WorkerStateMachine.STATE_IDLE); // so go to idle
+                }
+                return false;
+            }
+
             nUrlsCrawled += 1;
 
             if (getState() == STATE_LOADING) // loading code

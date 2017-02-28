@@ -100,6 +100,7 @@
     <Compile Include="models\Command.cs" />
     <Compile Include="models\DisallowEntity.cs" />
     <Compile Include="models\IndexEntity.cs" />
+    <Compile Include="models\Link.cs" />
     <Compile Include="models\LogEntity.cs" />
     <Compile Include="models\StatEntity.cs" />
     <Compile Include="models\UrlEntity.cs" />

@@ -253,26 +253,8 @@ namespace WebRole1
             indexTable.DeleteIfExists();
         }
 
-
-
         [WebMethod]
-        public void TestIndex(string url, string title)
-        {
-            List<string> indexList = new List<string>();
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudTable indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
-            indexTable.CreateIfNotExists();
-
-            IndexEntity entity = new IndexEntity(url, title);
-            TableOperation insertOperation = TableOperation.InsertOrReplace(entity);
-            indexTable.Execute(insertOperation);
-        }
-
-        [WebMethod]
-        public List<string> TestIndex2()
+        public List<string> ShowIndex()
         {
             List<string> indexList = new List<string>();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(

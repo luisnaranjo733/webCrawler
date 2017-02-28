@@ -17,14 +17,12 @@ namespace WorkerRole1.helpers
 {
     public class WebLoader : IWebLoader
     {
-        public DisallowCache disallowCache;
         private UrlValidator urlValidator;
 
         private CloudQueue urlQueue;
         public WebLoader()
         {
-            this.disallowCache = new DisallowCache();
-            this.urlValidator = new UrlValidator(disallowCache);
+            this.urlValidator = new UrlValidator();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
@@ -78,7 +76,7 @@ namespace WorkerRole1.helpers
                         childLastMod = child.InnerText;
                     }
                 }
-                if (childLoc.Length > 0 && urlValidator.IsUriValid(childLoc, childLastMod, checkDisallow))
+                if (childLoc.Length > 0 && urlValidator.IsUrlValidLoading(childLoc, childLastMod, checkDisallow))
                 {
                     callback(childLoc);
                 }

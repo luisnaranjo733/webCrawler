@@ -12,53 +12,62 @@ namespace WorkerRole1.helpers
     {
         private static DateTime cutoff = new DateTime(2016, 12, 1);
 
-        private DisallowCache disallowCache;
-        public UrlValidator(DisallowCache disallowCache)
+        private DisallowCache bleacherDisallowCache;
+        private DisallowCache cnnDisallowCache;
+        public UrlValidator()
         {
-            this.disallowCache = disallowCache;
+            bleacherDisallowCache = new DisallowCache("bleacherreport.com");
+            cnnDisallowCache = new DisallowCache("www.cnn.com");
         }
 
-        public bool IsUriValid(string loc, string lastMod, bool checkDisallow)
+        public bool IsUrlValidLoading(string loc, string lastMod, bool checkDisallow)
         {
-            if (checkDisallow)
-            {
-                return isUriRecent(loc, lastMod) && isUriValid(loc);
-            } else
-            {
-                return isUriRecent(loc, lastMod);
-            }
-        }
-
-        public bool isUriValidBleacher(string url)
-        {
-            if (url.Contains("nba"))
-            {
-                return isUriValid(url);
-            }
-            return false;
-        }
-
-        public bool isUriValid(string loc) {
-            // loading phase
-            // get domain
-            // check  that domain is bleacher report or cnn
-            // if domain is bleacher report, check that url is nba related
-
-            /* in the crawling phase, if a url ends in a directory, like "www.cnn.com/politics/" 
-             * it's easier to assume it's an html page. I'm not sure if this is 100% true, there 
-             * are probably edge cases where this is not true and I'll spend some time (~5min)
-             *  finding cases where this isn't true but I suspect that would be hard and prob 
-             *  not worth your time now unless you're 100% done w/ everything else and just 
-             *  focusing on edge cases now. 
-             * 
-             * */
+            bool isUrlValid = false;
             Uri uri = new Uri(loc);
-            if (uri.Host != "www.cnn.com" && uri.Host != "bleacherreport.com")
+
+            bool isUriAllowed = true;
+            if (uriIsBleacher(uri))
+            {
+                isUrlValid = loc.Contains("nba");
+                if (checkDisallow) { isUriAllowed = bleacherDisallowCache.isUrlAllowed(uri); }
+                
+            } else if (uriIsCnn(uri))
+            {
+                isUrlValid = isUriRecent(loc, lastMod);
+                if (checkDisallow) { isUriAllowed = cnnDisallowCache.isUrlAllowed(uri); }
+            }
+            return isUrlValid && isUriAllowed;
+        }
+
+        public bool IsUrlValidCrawling(string url)
+        {
+            // skip relative urls
+            if (!url.Contains("http")) // skip relative urls like "/page.html" 
             {
                 return false;
             }
+            Uri uri = new Uri(url);
+
+            // check domain, then disallow cache
+            if (uriIsBleacher(uri))
+            {
+                if (!bleacherDisallowCache.isUrlAllowed(uri)) { return false; }
+            } else if (uriIsCnn(uri))
+            {
+                if (!cnnDisallowCache.isUrlAllowed(uri)) { return false; }
+            } else { return false; }
+
+            // check if is html
             string[] segments = uri.Segments;
-            return disallowCache.isUrlAllowed(uri) && uri.Segments.Length > 1; // check disallow and check if it has a folder by checking segment length
+            return uri.Segments.Length > 1; // check disallow and check if it has a folder by checking segment length
+        }
+
+        private static bool uriIsBleacher(Uri uri) { return uri.Host.Contains("bleacherreport"); }
+        private static bool uriIsCnn(Uri uri) { return uri.Host.Contains("cnn"); }
+
+        private bool checkUriDomain(Uri uri)
+        {
+            return uri.Host.Contains("cnn") || uri.Host.Contains("bleacherreport");
         }
 
         private static bool isUriRecent(string loc, string lastMod)

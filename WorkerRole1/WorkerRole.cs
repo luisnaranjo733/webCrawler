@@ -59,10 +59,8 @@ namespace WorkerRole1
                 int.TryParse(instanceId.Substring(instanceId.LastIndexOf("_") + 1), out instanceID); // On compute emulator.
             }
 
-            workerStateMachine = new WorkerStateMachine(instanceID.ToString());
-
             webCrawler = new WebCrawler(statsManager);
-
+            workerStateMachine = new WorkerStateMachine(instanceID.ToString());
             return result;
         }
 
@@ -114,6 +112,7 @@ namespace WorkerRole1
                     } else if (commandMessage.AsString == Command.COMMAND_CRAWL)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_CRAWLING);
+                        webCrawler = new WebCrawler(statsManager);
                     }
                     commandQueue.DeleteMessage(commandMessage);
                 }
@@ -130,6 +129,9 @@ namespace WorkerRole1
                         {
                             urlQueue.DeleteMessage(urlMessage);
                         }
+                    } else
+                    {
+                        workerStateMachine.Act(null, webLoader, webCrawler);
                     }
                 }
                 

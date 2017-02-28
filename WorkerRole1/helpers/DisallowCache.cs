@@ -15,8 +15,11 @@ namespace SharedCodeLibrary.helpers
     {
         private CloudTable disallowTable;
         private List<string> disallowList;
-        public DisallowCache()
+        private string Domain;
+        public DisallowCache(string domain)
         {
+            this.Domain = domain;
+
             disallowList = new List<string>();
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
@@ -30,10 +33,12 @@ namespace SharedCodeLibrary.helpers
         {
             disallowList.Clear();
             TableQuery<DisallowEntity> query = new TableQuery<DisallowEntity>();
+            query.Where(
+                TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Domain));
 
             foreach (DisallowEntity entity in disallowTable.ExecuteQuery(query))
             {
-                disallowList.Add(entity.ToString().Replace("/", ""));
+                disallowList.Add(entity.ToString());
             }
         }
 

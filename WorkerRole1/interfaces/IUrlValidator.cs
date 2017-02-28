@@ -8,6 +8,7 @@ namespace WorkerRole1.interfaces
 {
     interface IUrlValidator
     {
-        bool IsUriValid(string uriString, string loc, bool checkDisallow);
+        bool IsUrlValidLoading(string uriString, string loc, bool checkDisallow);
+        bool IsUrlValidCrawling(string url);
     }
 }
