@@ -9,10 +9,9 @@ using System.Web.Script.Serialization;
 using System.Web.Script.Services;
 using System.Web.Services;
 using Microsoft.WindowsAzure.Storage.Queue;
-using SharedCodeLibrary.models;
-using WorkerRole1.helpers;
-using SharedCodeLibrary.models.TableEntities;
-using SharedCodeLibrary.models.QueueMessages;
+using CrawlerClassLibrary.components;
+using CrawlerClassLibrary.models.TableEntities;
+using CrawlerClassLibrary.models.QueueMessages;
 
 namespace WebRole1
 {

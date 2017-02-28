@@ -12,9 +12,8 @@ using Microsoft.WindowsAzure.Storage;
 using System.Configuration;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage.Queue;
-using WorkerRole1.helpers;
-using SharedCodeLibrary.models;
-using SharedCodeLibrary.models.QueueMessages;
+using CrawlerClassLibrary.components;
+using CrawlerClassLibrary.models.QueueMessages;
 
 namespace WorkerRole1
 {
