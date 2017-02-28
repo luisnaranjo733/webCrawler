@@ -66,6 +66,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="models\QueueMessages\CommandMessage.cs" />
+    <Compile Include="models\TableEntities\DisallowEntity.cs" />
+    <Compile Include="models\TableEntities\IndexEntity.cs" />
+    <Compile Include="models\Link.cs" />
+    <Compile Include="models\TableEntities\LogEntity.cs" />
+    <Compile Include="models\TableEntities\StatEntity.cs" />
+    <Compile Include="models\QueueMessages\UrlMessage.cs" />
+    <Compile Include="models\TableEntities\WorkerRoleEntity.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.TableEntities;
 using System;
 using System.Collections.Generic;
 using System.Configuration;

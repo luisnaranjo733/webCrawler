@@ -11,6 +11,8 @@ using System.Web.Services;
 using Microsoft.WindowsAzure.Storage.Queue;
 using SharedCodeLibrary.models;
 using WorkerRole1.helpers;
+using SharedCodeLibrary.models.TableEntities;
+using SharedCodeLibrary.models.QueueMessages;
 
 namespace WebRole1
 {
@@ -42,16 +44,16 @@ namespace WebRole1
             disallowTable = tableClient.GetTableReference(DisallowEntity.TABLE_DISALLOW);
             disallowTable.CreateIfNotExists();
 
-            workerTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
+            workerTable = tableClient.GetTableReference(WorkerRoleEntity.TABLE_WORKER_ROLES);
             workerTable.CreateIfNotExists();
 
             indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
             indexTable.CreateIfNotExists();
 
-            urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
             urlQueue.CreateIfNotExists();
 
-            commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
+            commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
             commandQueue.CreateIfNotExists();
 
             statsManager = new StatsManager();
@@ -96,7 +98,7 @@ namespace WebRole1
 
                 if (directive == "Sitemap")
                 {
-                    UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_SITEMAP, data);
+                    UrlMessage urlEntity = new UrlMessage(UrlMessage.URL_TYPE_SITEMAP, data);
 
                     // Add message
                     CloudQueueMessage message = new CloudQueueMessage(urlEntity.ToString());
@@ -118,7 +120,7 @@ namespace WebRole1
         [WebMethod]
         public void StartLoading()
         {
-            CloudQueueMessage startMessage = new CloudQueueMessage(Command.COMMAND_LOAD);
+            CloudQueueMessage startMessage = new CloudQueueMessage(CommandMessage.COMMAND_LOAD);
             commandQueue.AddMessage(startMessage);
             //statsManager.updateStat(StatsManager., statsManager.getSizeOfQueue());
         }
@@ -126,7 +128,7 @@ namespace WebRole1
         [WebMethod]
         public void StartCrawling()
         {
-            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_CRAWL);
+            CloudQueueMessage stopMessage = new CloudQueueMessage(CommandMessage.COMMAND_CRAWL);
             commandQueue.AddMessage(stopMessage);
         }
 
@@ -134,7 +136,7 @@ namespace WebRole1
         [WebMethod]
         public void StartIdling()
         {
-            CloudQueueMessage stopMessage = new CloudQueueMessage(Command.COMMAND_IDLE);
+            CloudQueueMessage stopMessage = new CloudQueueMessage(CommandMessage.COMMAND_IDLE);
             commandQueue.AddMessage(stopMessage);
         }
 
@@ -183,9 +185,9 @@ namespace WebRole1
             List<Dictionary<string, string>> collection = new List<Dictionary<string, string>>();
             if (workerTable.Exists())
             {
-                TableQuery<WorkerRoleInstance> query = new TableQuery<WorkerRoleInstance>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WorkerRoleInstance.TABLE_WORKER_ROLES));
+                TableQuery<WorkerRoleEntity> query = new TableQuery<WorkerRoleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WorkerRoleEntity.TABLE_WORKER_ROLES));
 
-                foreach (WorkerRoleInstance entity in workerTable.ExecuteQuery(query))
+                foreach (WorkerRoleEntity entity in workerTable.ExecuteQuery(query))
                 {
                     Dictionary<string, string> workerRoleDict = new Dictionary<string, string>();
                     workerRoleDict.Add("id", entity.RowKey);

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedCodeLibrary.models
+namespace SharedCodeLibrary.models.QueueMessages
 {
-    public class Command
+    public static class CommandMessage
     {
         public const string QUEUE_COMMAND = "command";
         public const string COMMAND_LOAD = "load";

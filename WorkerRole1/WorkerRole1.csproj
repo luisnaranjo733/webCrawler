@@ -97,14 +97,6 @@
     <Compile Include="interfaces\IWebCrawler.cs" />
     <Compile Include="interfaces\IWebLoader.cs" />
     <Compile Include="interfaces\IWorkerStateMachine.cs" />
-    <Compile Include="models\Command.cs" />
-    <Compile Include="models\DisallowEntity.cs" />
-    <Compile Include="models\IndexEntity.cs" />
-    <Compile Include="models\Link.cs" />
-    <Compile Include="models\LogEntity.cs" />
-    <Compile Include="models\StatEntity.cs" />
-    <Compile Include="models\UrlEntity.cs" />
-    <Compile Include="models\WorkerRoleInstance.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WorkerRole.cs" />
   </ItemGroup>
@@ -112,7 +104,12 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\ClassLibrary2\SharedCodeLibrary.csproj">
+      <Project>{ecdbd39e-36fa-4e3f-b01a-f0081f6ca646}</Project>
+      <Name>SharedCodeLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

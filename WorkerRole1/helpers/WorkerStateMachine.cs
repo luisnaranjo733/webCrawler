@@ -2,6 +2,8 @@
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
+using SharedCodeLibrary.models.TableEntities;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -18,7 +20,7 @@ namespace WorkerRole1.helpers
         public const string STATE_LOADING = "loading";
         public const string STATE_CRAWLING = "crawling";
 
-        private WorkerRoleInstance workerRoleInstance;
+        private WorkerRoleEntity workerRoleInstance;
         private CloudTable workerRoleTable;
         private int nUrlsCrawled;
         private StatsManager statsManager;
@@ -29,24 +31,24 @@ namespace WorkerRole1.helpers
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            workerRoleTable = tableClient.GetTableReference(WorkerRoleInstance.TABLE_WORKER_ROLES);
+            workerRoleTable = tableClient.GetTableReference(WorkerRoleEntity.TABLE_WORKER_ROLES);
 
-            TableOperation retrieveOperation = TableOperation.Retrieve<WorkerRoleInstance>(WorkerRoleInstance.TABLE_WORKER_ROLES, workerID);
+            TableOperation retrieveOperation = TableOperation.Retrieve<WorkerRoleEntity>(WorkerRoleEntity.TABLE_WORKER_ROLES, workerID);
             TableResult retrievedResult = workerRoleTable.Execute(retrieveOperation);
             if (retrievedResult.Result == null) 
             {
-                workerRoleInstance = new WorkerRoleInstance(workerID, STATE_IDLE);
+                workerRoleInstance = new WorkerRoleEntity(workerID, STATE_IDLE);
                 TableOperation insertOperation = TableOperation.Insert(workerRoleInstance);
                 workerRoleTable.Execute(insertOperation);
             } else
             {
-                workerRoleInstance = (WorkerRoleInstance)retrievedResult.Result;
+                workerRoleInstance = (WorkerRoleEntity)retrievedResult.Result;
                 this.setState(workerRoleInstance.State);
             }
             statsManager = new StatsManager();
         }
 
-        public bool Act(UrlEntity urlEntity, IWebLoader webLoader, IWebCrawler webCrawler)
+        public bool Act(UrlMessage urlEntity, IWebLoader webLoader, IWebCrawler webCrawler)
         {
             if (urlEntity == null) // if url queue is empty
             {
@@ -62,11 +64,11 @@ namespace WorkerRole1.helpers
             if (getState() == STATE_LOADING) // loading code
             {
                 statsManager.UpdateStats(); // manual update stats on each url during loading phase only
-                if (urlEntity.UrlType == UrlEntity.URL_TYPE_SITEMAP)
+                if (urlEntity.UrlType == UrlMessage.URL_TYPE_SITEMAP)
                 {
                     webLoader.parseSitemap(urlEntity.Url); // crawls xml, adds leaf html urls to queue
                 }
-                else if (urlEntity.UrlType == UrlEntity.URL_TYPE_HTML)
+                else if (urlEntity.UrlType == UrlMessage.URL_TYPE_HTML)
                 {
                     // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
                     // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)

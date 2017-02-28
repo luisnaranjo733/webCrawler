@@ -1,4 +1,5 @@
 ﻿using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace WorkerRole1.interfaces
 {
     interface IWorkerStateMachine
     {
-        bool Act(UrlEntity urlEntity, IWebLoader webLoader,  IWebCrawler webCrawler);
+        bool Act(UrlMessage urlEntity, IWebLoader webLoader,  IWebCrawler webCrawler);
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.WindowsAzure.Storage.Queue;
 using SharedCodeLibrary.helpers;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -27,7 +28,7 @@ namespace WorkerRole1.helpers
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
         }
 
         public void parseSitemap(string url)
@@ -85,7 +86,7 @@ namespace WorkerRole1.helpers
 
         private void addUrlToQueue(string url)
         {
-            UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, url);
+            UrlMessage urlEntity = new UrlMessage(UrlMessage.URL_TYPE_HTML, url);
 
             CloudQueueMessage urlMessage = new CloudQueueMessage(urlEntity.ToString());
             urlQueue.AddMessage(urlMessage);

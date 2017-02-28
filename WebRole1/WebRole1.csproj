@@ -129,6 +129,10 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <ProjectReference Include="..\ClassLibrary2\SharedCodeLibrary.csproj">
+      <Project>{ecdbd39e-36fa-4e3f-b01a-f0081f6ca646}</Project>
+      <Name>SharedCodeLibrary</Name>
+    </ProjectReference>
     <ProjectReference Include="..\WorkerRole1\WorkerRole1.csproj">
       <Project>{e1dbc321-8e28-46b1-8bce-7c57c393ed1c}</Project>
       <Name>WorkerRole1</Name>

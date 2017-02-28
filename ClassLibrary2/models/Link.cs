@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WorkerRole1.models
+namespace SharedCodeLibrary.models
 {
     public class Link
     {

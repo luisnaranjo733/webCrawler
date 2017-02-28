@@ -4,6 +4,8 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using SharedCodeLibrary.helpers;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
+using SharedCodeLibrary.models.TableEntities;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -11,7 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WorkerRole1.interfaces;
-using WorkerRole1.models;
+
 
 namespace WorkerRole1.helpers
 {
@@ -36,7 +38,7 @@ namespace WorkerRole1.helpers
 
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
-            urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
         }
 
         public void Crawl(string url)
@@ -77,7 +79,7 @@ namespace WorkerRole1.helpers
                     {
                         visitedUrls.Add(link, true);
 
-                        UrlEntity urlEntity = new UrlEntity(UrlEntity.URL_TYPE_HTML, link);
+                        UrlMessage urlEntity = new UrlMessage(UrlMessage.URL_TYPE_HTML, link);
 
                         // Add message
                         CloudQueueMessage message = new CloudQueueMessage(urlEntity.ToString());

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedCodeLibrary.models
+namespace SharedCodeLibrary.models.TableEntities
 {
     public class IndexEntity : TableEntity
     {

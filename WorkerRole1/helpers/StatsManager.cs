@@ -2,6 +2,8 @@
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
+using SharedCodeLibrary.models.TableEntities;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -40,7 +42,7 @@ namespace WorkerRole1.helpers
             statsTable = tableClient.GetTableReference(StatEntity.TABLE_STATS);
             statsTable.CreateIfNotExists();
             indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
-            urlsQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            urlsQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
 
             cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
             ramCounter = new PerformanceCounter("Memory", "Available MBytes");

@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage.Table;
 
-namespace SharedCodeLibrary.models
+namespace SharedCodeLibrary.models.QueueMessages
 {
-    public class UrlEntity
+    public class UrlMessage
     {
         public const string QUEUE_URL = "urlsqueue";
 
@@ -18,7 +18,7 @@ namespace SharedCodeLibrary.models
 
         public string UrlType { get; set; }
         public string Url { get; set; }
-        public UrlEntity(string urlType, string url)
+        public UrlMessage(string urlType, string url)
         {
             UrlType = urlType;
             Url = url;
@@ -29,10 +29,10 @@ namespace SharedCodeLibrary.models
             return this.UrlType + DELIMITER + this.Url;
         }
 
-        public static UrlEntity Parse(string toString)
+        public static UrlMessage Parse(string toString)
         {
             List<string> data = toString.Split(DELIMITER).ToList<string>();
-            return new UrlEntity(data[0], data[1]);
+            return new UrlMessage(data[0], data[1]);
         }
     }
 }

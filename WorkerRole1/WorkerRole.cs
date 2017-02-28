@@ -14,6 +14,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage.Queue;
 using WorkerRole1.helpers;
 using SharedCodeLibrary.models;
+using SharedCodeLibrary.models.QueueMessages;
 
 namespace WorkerRole1
 {
@@ -23,7 +24,7 @@ namespace WorkerRole1
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
         private WorkerStateMachine workerStateMachine;
-        private StatsManager statsManager;
+        private StatsManager statsManager = new StatsManager();
         private WebLoader webLoader;
         private WebCrawler webCrawler;
 
@@ -87,10 +88,10 @@ namespace WorkerRole1
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
             //CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
 
-            CloudQueue commandQueue = queueClient.GetQueueReference(Command.QUEUE_COMMAND);
+            CloudQueue commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
             commandQueue.CreateIfNotExists();
 
-            CloudQueue urlQueue = queueClient.GetQueueReference(UrlEntity.QUEUE_URL);
+            CloudQueue urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
             commandQueue.CreateIfNotExists();
 
             // TODO: Replace the following with your own logic.
@@ -102,14 +103,14 @@ namespace WorkerRole1
                 CloudQueueMessage commandMessage = commandQueue.GetMessage(TimeSpan.FromMinutes(5));
                 if (commandMessage != null)
                 {
-                    if (commandMessage.AsString == Command.COMMAND_LOAD)
+                    if (commandMessage.AsString == CommandMessage.COMMAND_LOAD)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_LOADING);
                         webLoader = new WebLoader();
-                    } else if (commandMessage.AsString == Command.COMMAND_IDLE)
+                    } else if (commandMessage.AsString == CommandMessage.COMMAND_IDLE)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_IDLE);
-                    } else if (commandMessage.AsString == Command.COMMAND_CRAWL)
+                    } else if (commandMessage.AsString == CommandMessage.COMMAND_CRAWL)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_CRAWLING);
                         webCrawler = new WebCrawler(statsManager);
@@ -123,7 +124,7 @@ namespace WorkerRole1
                     if (urlMessage != null) // got url from queue of sitemap or urlset
                     {
                         // load or crawl with UrlEntity depending on current state 
-                        UrlEntity urlEntity = UrlEntity.Parse(urlMessage.AsString);
+                        UrlMessage urlEntity = UrlMessage.Parse(urlMessage.AsString);
                         bool deleteMessage = workerStateMachine.Act(urlEntity, webLoader, webCrawler);
                         if (deleteMessage)
                         {
