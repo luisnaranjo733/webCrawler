@@ -77,8 +77,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
-    <Compile Include="components\Class1.cs" />
     <Compile Include="components\DisallowCache.cs" />
     <Compile Include="components\Logger.cs" />
     <Compile Include="components\StatsManager.cs" />

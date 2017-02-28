@@ -85,7 +85,6 @@ namespace WorkerRole1
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            //CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
 
             CloudQueue commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
             commandQueue.CreateIfNotExists();
@@ -93,12 +92,8 @@ namespace WorkerRole1
             CloudQueue urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
             commandQueue.CreateIfNotExists();
 
-            // TODO: Replace the following with your own logic.
             while (!cancellationToken.IsCancellationRequested)
             {
-                //Trace.TraceInformation("Working");
-
-
                 CloudQueueMessage commandMessage = commandQueue.GetMessage(TimeSpan.FromMinutes(5));
                 if (commandMessage != null)
                 {
@@ -117,21 +112,21 @@ namespace WorkerRole1
                     commandQueue.DeleteMessage(commandMessage);
                 }
 
-                if (workerStateMachine.getState() != WorkerStateMachine.STATE_IDLE) // in loading or crawling state
+                if (workerStateMachine.getState() != WorkerStateMachine.STATE_IDLE) // in a loading or crawling state
                 {
                     CloudQueueMessage urlMessage = urlQueue.GetMessage(); 
                     if (urlMessage != null) // got url from queue of sitemap or urlset
                     {
                         // load or crawl with UrlEntity depending on current state 
                         UrlMessage urlEntity = UrlMessage.Parse(urlMessage.AsString);
-                        bool deleteMessage = workerStateMachine.Act(urlEntity, webLoader, webCrawler);
+                        bool deleteMessage = workerStateMachine.Act(urlEntity);
                         if (deleteMessage)
                         {
                             urlQueue.DeleteMessage(urlMessage);
                         }
                     } else
                     {
-                        workerStateMachine.Act(null, webLoader, webCrawler);
+                        workerStateMachine.Act(null); // need to call Act(null) to finish crawling one day
                     }
                 }
                 

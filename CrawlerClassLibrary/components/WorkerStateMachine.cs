@@ -21,7 +21,11 @@ namespace CrawlerClassLibrary.components
         private WorkerRoleEntity workerRoleInstance;
         private CloudTable workerRoleTable;
         private int nUrlsCrawled;
+
         private StatsManager statsManager;
+
+        private WebLoader webLoader;
+        private WebCrawler webCrawler;
 
         public WorkerStateMachine(string workerID)
         {
@@ -44,11 +48,13 @@ namespace CrawlerClassLibrary.components
                 this.setState(workerRoleInstance.State);
             }
             statsManager = new StatsManager();
+            webLoader = new WebLoader();
+            webCrawler = new WebCrawler(statsManager);
         }
 
-        public bool Act(UrlMessage urlEntity, WebLoader webLoader, WebCrawler webCrawler)
+        public bool Act(UrlMessage urlMessage)
         {
-            if (urlEntity == null) // if url queue is empty
+            if (urlMessage == null) // if url queue is empty
             {
                 if (getState() == STATE_CRAWLING) // and we are in the crawling state, we must have finished crawling
                 {
@@ -62,11 +68,11 @@ namespace CrawlerClassLibrary.components
             if (getState() == STATE_LOADING) // loading code
             {
                 statsManager.UpdateStats(); // manual update stats on each url during loading phase only
-                if (urlEntity.UrlType == UrlMessage.URL_TYPE_SITEMAP)
+                if (urlMessage.UrlType == UrlMessage.URL_TYPE_SITEMAP)
                 {
-                    webLoader.parseSitemap(urlEntity.Url); // crawls xml, adds leaf html urls to queue
+                    webLoader.parseSitemap(urlMessage.Url); // crawls xml, adds leaf html urls to queue
                 }
-                else if (urlEntity.UrlType == UrlMessage.URL_TYPE_HTML)
+                else if (urlMessage.UrlType == UrlMessage.URL_TYPE_HTML)
                 {
                     // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
                     // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
@@ -83,7 +89,7 @@ namespace CrawlerClassLibrary.components
                     statsManager.UpdateStats(); // can be null
                 }
 
-                webCrawler.Crawl(urlEntity.Url);
+                webCrawler.Crawl(urlMessage.Url);
             }
             return true;
         }
@@ -105,6 +111,11 @@ namespace CrawlerClassLibrary.components
             }
             TableOperation updateOperation = TableOperation.Replace(workerRoleInstance);
             workerRoleTable.Execute(updateOperation);
+
+            // refresh references to components
+            statsManager = new StatsManager();
+            webLoader = new WebLoader();
+            webCrawler = new WebCrawler(statsManager);
             return true;
         }
 

@@ -4,13 +4,13 @@ using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace CrawlerClassLibrary.components
 {
+    /// <summary>
+    /// Disallow cache for a specific domain
+    /// </summary>
     public class DisallowCache
     {
         private CloudTable disallowTable;
@@ -29,6 +29,9 @@ namespace CrawlerClassLibrary.components
             refreshCache();
         }
 
+        /// <summary>
+        /// Refresh the cache results
+        /// </summary>
         public void refreshCache()
         {
             disallowList.Clear();
@@ -42,6 +45,11 @@ namespace CrawlerClassLibrary.components
             }
         }
 
+        /// <summary>
+        /// Check if a certain url is allowed based on the contents of the cache
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <returns></returns>
         public bool isUrlAllowed(Uri uri)
         {
             if (uri.Segments.Length == 0)
