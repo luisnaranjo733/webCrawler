@@ -39,7 +39,7 @@ namespace CrawlerClassLibrary.components
             }
             catch (WebException e)
             {
-                Logger.Instance.Log(Logger.LOG_ERROR, "parseSitemap web request failed");
+                Logger.Instance.Log(Logger.LOG_ERROR, "parseSitemap web request failed " + url + " | " + e.ToString());
                 return;
             }
             Stream dataStream = response.GetResponseStream();

@@ -69,7 +69,7 @@ namespace WebRole1
                 response = (HttpWebResponse)request.GetResponse();
             } catch(WebException e)
             {
-                Logger.Instance.Log(Logger.LOG_ERROR, "QueueSitemap web request failed");
+                Logger.Instance.Log(Logger.LOG_ERROR, "QueueSitemap web request failed | " + robotsURL + " " + e.ToString());
                 return;
             }
             

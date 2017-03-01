@@ -62,7 +62,7 @@ namespace CrawlerClassLibrary.components
 
                 IndexEntity indexEntity = new IndexEntity(url, title); // also add page date
                 TableOperation insertOperation = TableOperation.Insert(indexEntity);
-                urlTable.Execute(insertOperation);
+                urlTable.ExecuteAsync(insertOperation);
 
                 visitedUrls.Add(url, true);
 
@@ -79,7 +79,7 @@ namespace CrawlerClassLibrary.components
 
                         // Add message
                         CloudQueueMessage message = new CloudQueueMessage(urlEntity.ToString());
-                        urlQueue.AddMessage(message);
+                        urlQueue.AddMessageAsync(message);
 
                     }
                 }

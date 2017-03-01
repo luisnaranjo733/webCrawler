@@ -117,7 +117,7 @@ function request(requestType, webMethodName, params, successCallback, failureCal
 
     $.ajax({
         type: requestType,
-        url: `Admin.asmx/${webMethodName}`,
+        url: `Dashboard.asmx/${webMethodName}`,
         data: formattedData,
         contentType: "application/json; charset=utf-8",
         dataType: "json"

@@ -111,18 +111,26 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Admin.asmx" />
+    <Content Include="Dashboard.asmx" />
     <Content Include="CrawlerDashboard.html" />
     <Content Include="static\css\app.css" />
-    <Content Include="static\js\mvc.js" />
+    <Content Include="app.js" />
+    <Content Include="SuggestionService.asmx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Admin.asmx.cs">
-      <DependentUpon>Admin.asmx</DependentUpon>
+    <Compile Include="Dashboard.asmx.cs">
+      <DependentUpon>Dashboard.asmx</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="SuggestionService.asmx.cs">
+      <DependentUpon>SuggestionService.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="models\ITrie.cs" />
+    <Compile Include="models\Trie.cs" />
+    <Compile Include="models\TrieNode.cs" />
     <Compile Include="WebRole.cs" />
   </ItemGroup>
   <ItemGroup>
