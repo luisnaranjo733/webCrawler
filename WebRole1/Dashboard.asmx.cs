@@ -202,14 +202,13 @@ namespace WebRole1
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string GetErrorLog()
         {
-            List<string> errorLog = new List<string>();
-            
+            List<string> errorLog = Logger.Instance.RetrieveEntries();
+
             if (errorLog.Count == 0)
             {
                 errorLog.Add("No errors yet :)");
             }
 
-            Logger.Instance.RetrieveEntries();
             return new JavaScriptSerializer().Serialize(errorLog);
         }
 

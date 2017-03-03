@@ -8,7 +8,7 @@ namespace CrawlerClassLibrary.components
 {
     public class UrlValidator
     {
-        private static DateTime cutoff = new DateTime(2016, 12, 1);
+        private static DateTime cutoff = new DateTime(2017, 1, 1);
 
         private DisallowCache bleacherDisallowCache;
         private DisallowCache cnnDisallowCache;

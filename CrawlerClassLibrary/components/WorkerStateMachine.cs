@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CrawlerClassLibrary.components
@@ -89,9 +90,16 @@ namespace CrawlerClassLibrary.components
                     statsManager.UpdateStats(); // can be null
                 }
 
-                webCrawler.Crawl(urlMessage.Url);
+                WaitCallback callback = new WaitCallback(webCrawler.Crawl);
+                ThreadPool.QueueUserWorkItem(callback, urlMessage.Url);
+                //webCrawler.Crawl(urlMessage.Url);
             }
             return true;
+        }
+
+        private void SomeLongTask(Object state)
+        {
+            // Insert code to perform a long task.
         }
 
         public bool setState(string state)

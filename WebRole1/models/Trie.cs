@@ -9,7 +9,12 @@ namespace WebRole1.models
 {
     public class Trie : ITrie
     {
-        private TrieNode root = new TrieNode(); // yeah
+        private TrieNode root = new TrieNode();
+
+        public bool IsBuilt()
+        {
+            return root.children.Count > 0;
+        }
 
         public void AddTitle(string title)
         {

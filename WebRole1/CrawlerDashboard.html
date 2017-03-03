@@ -9,19 +9,42 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <!-- Optional theme -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-    <link rel="stylesheet" href="static/css/app.css" />
+    <link rel="stylesheet" href="static/css/dashboard.css" />
 
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"
             integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
             crossorigin="anonymous"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-    <script src="app.js"></script>
+    <script src="static/js/dashboard.js"></script>
 </head>
 <body>
     <div class="container">
-        <div id="header">
-            <h1>Web crawler dashboard</h1>
+
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Search engine</a>
+                </div>
+
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li><a href="/Search.html">Search form</a></li>
+                    </ul>
+                </div><!-- /.navbar-collapse -->
+            </div><!-- /.container-fluid -->
+        </nav>
+
+        <div class="page-header">
+            <h1>Dashboard</h1>
         </div>
 
         <!-- Modal -->
@@ -40,98 +63,116 @@
             </div>
         </div>
         
-        <h2>Statistics</h2>
-        <div id="stats">
-
-            <button class="btn btn-static" type="button">
-                CPU utilization <span class="badge" id="cpu">?</span>
-            </button>
-
-            <button class="btn btn-static" type="button">
-                RAM available <span class="badge" id="ramMB">?</span>
-            </button>
-
-            <button class="btn btn-static" type="button">
-                URLS crawled <span class="badge" id="nUrlsCrawled">?</span>
-            </button>
-
-            <button class="btn btn-static" type="button">
-                Size of queue <span class="badge" id="sizeOfQueue">?</span>
-            </button>
-
-            <button class="btn btn-static" type="button">
-                Size of table <span class="badge" id="sizeOfTable">?</span>
-            </button>
-
-            <button type="button" class="btn btn-default">
-                <span class="glyphicon glyphicon-refresh" aria-hidden="true" id="refreshStats"></span>
-            </button>
-        </div>
-
-        <div id="workerStates">
-            <h2>Worker states</h2>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Worker ID</th>
-                        <th>Worker state</th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                </tbody>
-            </table>
-        </div>
-
         <div class="row">
             <div class="col-md-6">
-                <div id="actionButtons">
-                    <h2>Actions</h2>
+                <h2>Stats</h2>
+                <div id="stats">
 
-                    <button type="button" class="btn btn-primary" id="queueBleacher">Queue up BleacherReport sitemaps</button>
-                    <button type="button" class="btn btn-primary" id="queueCnn">Queue up CNN sitemaps</button>
-                    <br/><br/>
+                    <button class="btn btn-static" type="button">
+                        CPU utilization <span class="badge" id="cpu">?</span>
+                    </button>
 
-                    <button type="button" class="btn btn-primary" id="startLoading">Start loading</button>
-                    <button type="button" class="btn btn-primary" id="startCrawling">Start crawling</button>
-                    <button type="button" class="btn btn-primary" id="startIdling">Start idling</button>
-                    <br/><br/>
+                    <button class="btn btn-static" type="button">
+                        RAM available <span class="badge" id="ramMB">?</span>
+                    </button>
 
-                    <form class="form-inline">
-                        <div class="form-group">
-                            <label for="indexedUrl">URL</label>
-                            <input type="text" class="form-control" id="indexedUrl" placeholder="Indexed url">
-                        </div>
-                        <button type="button" class="btn btn-primary" id="retrievePageTitle">Retrieve page title from index</button>
-                    </form>
+                    <button class="btn btn-static" type="button">
+                        URLS crawled <span class="badge" id="nUrlsCrawled">?</span>
+                    </button>
 
-                    <button type="button" class="btn btn-primary" id="deleteEverything">Delete everything</button>
-                    <button type="button" class="btn btn-primary" id="clearUrlQueue">Clear url queue</button>
+                    <button class="btn btn-static" type="button">
+                        Size of queue <span class="badge" id="sizeOfQueue">?</span>
+                    </button>
+
+                    <button class="btn btn-static" type="button">
+                        Size of table <span class="badge" id="sizeOfTable">?</span>
+                    </button>
+
+                    <button type="button" class="btn btn-default">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true" id="refreshStats"></span>
+                    </button>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div id="errorLog">
-                    <h2>Logging</h2>
-                    <button class="btn btn-danger" type="button" data-toggle="collapse" data-target="#collapsibleErrorLog" aria-expanded="false" aria-controls="collapseExample">
-                        Error log
-                    </button>
-                    <div class="collapse" id="collapsibleErrorLog">
-                        <ul class="list-group" id="errorLogList"></ul>
-                    </div>
-                </div>
 
-                <div id="recentUrls">
-                    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapsibleRecentlyCrawled" aria-expanded="false" aria-controls="collapseExample">
-                        Last 10 urls crawled
-                    </button>
-                    <div class="collapse" id="collapsibleRecentlyCrawled">
-                        <ul class="list-group" id="crawledList"></ul>
-                    </div>
-                </div>
+            <div class="col-md-6">
+
+                <div id="workerStates">
+                    <h2>Worker states</h2>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Worker ID</th>
+                                <th>Worker state</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>  
             </div>
         </div>
 
-    </div>
+
+
+
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div id="actionButtons">
+                        <h2>Actions</h2>
+
+                        <button type="button" class="btn btn-primary" id="queueBleacher">Queue up BleacherReport sitemaps</button>
+                        <button type="button" class="btn btn-primary" id="queueCnn">Queue up CNN sitemaps</button>
+                        <br /><br />
+
+                        <button type="button" class="btn btn-primary" id="startLoading">Start loading</button>
+                        <button type="button" class="btn btn-primary" id="startCrawling">Start crawling</button>
+                        <button type="button" class="btn btn-primary" id="startIdling">Start idling</button>
+                        <br /><br />
+
+                        <form class="form-inline">
+                            <div class="form-group">
+                                <label for="indexedUrl">URL</label>
+                                <input type="text" class="form-control" id="indexedUrl" placeholder="Indexed url">
+                            </div>
+                            <button type="button" class="btn btn-primary" id="retrievePageTitle">Retrieve page title from index</button>
+                        </form>
+
+                        <button type="button" class="btn btn-primary" id="deleteEverything">Delete everything</button>
+                        <button type="button" class="btn btn-primary" id="clearUrlQueue">Clear url queue</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="errorLog">
+                        <h2>Logging</h2>
+                        <button class="btn btn-danger" type="button" data-toggle="collapse" data-target="#collapsibleErrorLog" aria-expanded="false" aria-controls="collapseExample">
+                            Error log
+                        </button>
+                        <div class="collapse" id="collapsibleErrorLog">
+                            <ul class="list-group" id="errorLogList"></ul>
+                        </div>
+                    </div>
+
+                    <div id="recentUrls">
+                        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapsibleRecentlyCrawled" aria-expanded="false" aria-controls="collapseExample">
+                            Last 10 urls crawled
+                        </button>
+                        <div class="collapse" id="collapsibleRecentlyCrawled">
+                            <ul class="list-group" id="crawledList"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="Trie">
+                <br /><br />
+                <h2>Trie</h2>
+                <br /><br />
+                <a class="btn btn-default" href="/SuggestionService.asmx/downloadWiki" role="button">Download wiki</a>
+                <a class="btn btn-default" href="/SuggestionService.asmx/buildTrie" role="button">Build trie</a>
+            </div>
+
+        </div>
     
 
 </body>

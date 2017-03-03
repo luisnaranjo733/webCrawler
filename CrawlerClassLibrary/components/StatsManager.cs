@@ -78,7 +78,15 @@ namespace CrawlerClassLibrary.components
                 StatEntity statEntity = (StatEntity)retrievedResult.Result;
                 statEntity.Value = statValue;
                 TableOperation updateOperation = TableOperation.Replace(statEntity);
-                statsTable.Execute(updateOperation);
+                try
+                {
+                    statsTable.Execute(updateOperation);
+                } catch (StorageException e)
+                {
+                    Logger.Instance.Log(Logger.LOG_ERROR, "Update stats operation failed: " + statName + " | " + e.ToString());
+                    return;
+                }
+                
             }
         }
 

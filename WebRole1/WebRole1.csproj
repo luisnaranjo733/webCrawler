@@ -113,8 +113,11 @@
   <ItemGroup>
     <Content Include="Dashboard.asmx" />
     <Content Include="CrawlerDashboard.html" />
-    <Content Include="static\css\app.css" />
-    <Content Include="app.js" />
+    <Content Include="Search.html" />
+    <Content Include="static\css\dashboard.css" />
+    <Content Include="static\css\search.css" />
+    <Content Include="static\js\search.js" />
+    <Content Include="static\js\dashboard.js" />
     <Content Include="SuggestionService.asmx" />
     <Content Include="Web.config" />
   </ItemGroup>

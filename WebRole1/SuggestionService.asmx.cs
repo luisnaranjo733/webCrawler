@@ -41,12 +41,20 @@ namespace WebRole1
         }
 
         [WebMethod]
-        public bool downloadWiki()
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string IsTrieBuilt()
         {
+            return new JavaScriptSerializer().Serialize(trie.IsBuilt());
+        }
 
+        [WebMethod]
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string downloadWiki()
+        {
+            bool fileDownloaded = false;
             if (File.Exists(seedFilePath))
             {
-                return true; // if file has already been downloaded, return and don't do anything
+                fileDownloaded = true; // if file has already been downloaded, return and don't do anything
             }
 
             // else download the file
@@ -55,8 +63,9 @@ namespace WebRole1
             );
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
             CloudBlobContainer container = blobClient.GetContainerReference("info344");
+            container.CreateIfNotExists();
 
-            if (container.Exists())
+            if (!fileDownloaded && container.Exists())
             {
                 CloudBlockBlob blob = container.GetBlockBlobReference(SEED_FILE_NAME);
                 if (blob.Exists())
@@ -65,12 +74,13 @@ namespace WebRole1
                     using (var fileStream = File.OpenWrite(seedFilePath))
                     {
                         blob.DownloadToStream(fileStream);
-                        return true;
+                        fileDownloaded = true;
                     }
                 }
  
             }
-            return false;
+            return new JavaScriptSerializer().Serialize(fileDownloaded);
+
         }
 
         [WebMethod]
