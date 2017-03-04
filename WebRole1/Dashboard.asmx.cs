@@ -28,6 +28,7 @@ namespace WebRole1
         CloudTable disallowTable;
         CloudTable workerTable;
         CloudTable indexTable;
+        CloudTable logTable;
         CloudQueue urlQueue;
         CloudQueue commandQueue;
 
@@ -48,6 +49,9 @@ namespace WebRole1
 
             indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
             indexTable.CreateIfNotExists();
+
+            logTable = tableClient.GetTableReference(LogEntity.TABLE_LOG);
+            logTable.CreateIfNotExists();
 
             urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
             urlQueue.CreateIfNotExists();
@@ -114,6 +118,7 @@ namespace WebRole1
             }
             dataStream.Close();
             response.Close();
+            StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
         }
 
         [WebMethod]
@@ -149,28 +154,37 @@ namespace WebRole1
         {
             List<Dictionary<string, string>> collection = new List<Dictionary<string, string>>();
 
-            string[] keywords = searchQuery.Split(' ');
-            foreach(string keyword in keywords)
-            {
-                TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
-                    .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, keyword));
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            result.Add("title", "Lebron is the king");
+            result.Add("url", "http://lebronisking.com");
+            collection.Add(result);
 
-                foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
-                {
-                    Dictionary<string, string> result = new Dictionary<string, string>();
-                    result.Add("keyword", entity.GetKeyword());
-                    result.Add("url", entity.GetUrl());
-                    result.Add("date", entity.Date.ToShortDateString());
-                    collection.Add(result);
-                }
-            }
+            //string[] keywords = searchQuery.Split(' ');
+            //foreach(string keyword in keywords)
+            //{
+            //    TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
+            //        .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, keyword));
+
+            //    foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            //    {
+            //        Dictionary<string, string> result = new Dictionary<string, string>();
+            //        result.Add("keyword", entity.GetKeyword());
+            //        result.Add("url", entity.GetUrl());
+            //        result.Add("date", entity.Date.ToShortDateString());
+            //        collection.Add(result);
+            //    }
+            //}
 
 
 
             return new JavaScriptSerializer().Serialize(collection);
         }
 
-
+        [WebMethod]
+        public void UpdateStats()
+        {
+            StatsManager.Instance.UpdateStats();
+        }
 
         [WebMethod]
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
@@ -245,16 +259,17 @@ namespace WebRole1
         public void ClearUrlQueue()
         {
             urlQueue.Clear();
+            StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
         }
 
         [WebMethod]
         public void DeleteEverything()
         {
-            urlQueue.DeleteIfExists();
-            commandQueue.DeleteIfExists();
-            disallowTable.DeleteIfExists();
+            urlQueue.Clear();
+            commandQueue.Clear();
             workerTable.DeleteIfExists();
             indexTable.DeleteIfExists();
+            logTable.DeleteIfExists();
         }
 
         [WebMethod]

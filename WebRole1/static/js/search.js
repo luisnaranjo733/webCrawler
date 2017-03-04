@@ -15,7 +15,6 @@ function hideSearchSuggestions() {
 
 // render an array of search result strings (replace state)
 function renderSearchSuggestions(searchSuggestions) {
-    console.log(searchSuggestions);
     $('ul').empty();
     for (let searchSuggestion of searchSuggestions) {
         $('#searchSuggestions ul').append(`<li>${searchSuggestion}</li>`);
@@ -27,36 +26,70 @@ let showRankedResults = false;
 function renderSearchResults(searchResults) {
     $('#searchResults').empty();
     for (let searchResult of searchResults) {
-        console.log(searchResult);
-        let a = $('<a/>');
-        a.addClass('list-group-item');
-
-        let h4 = $('<h4/>');
-        h4.addClass('list-group-item-heading');
-        h4.text(searchResult.title);
-
-        let p = $('<p/>');
-        p.addClass('list-group-item-text');
-        p.text(searchResult.url);
-
-        a.append(h4);
-        a.append(p);
-        $('#searchResults').append(a);
-
-//        <a class="list-group-item">
-//    <h4 class="list-group-item-heading">Title</h4>
-//        <p class="list-group-item-text">http://adfasdfasdf.com</p>
-    //</a>
+        $('#searchResults').append(searchResult.toDom());
 
     }
 }
 
 /* model */
 
-class SearchResult {
+class ArticleResult {
     constructor(title, url) {
         this.title = title;
         this.url = url;
+    }
+
+    toDom() {
+        let a = $('<a/>');
+        a.attr('href', this.url);
+        a.addClass('list-group-item');
+
+        let h4 = $('<h4/>');
+        h4.addClass('list-group-item-heading');
+        h4.text(this.title);
+
+        let p = $('<p/>');
+        p.addClass('list-group-item-text');
+        p.text(this.url);
+
+        a.append(h4);
+        a.append(p);
+        return a;
+    }
+}
+
+class NbaResult {
+    constructor(freeThrowPct, gamesPlayed, name, pointsPerGame, team, threePointPct) {
+        this.freeThrowPct = freeThrowPct;
+        this.gamesPlayed = gamesPlayed;
+        this.name = name;
+        this.pointsPerGame = pointsPerGame;
+        this.team = team;
+        this.threePointPct = threePointPct;
+    }
+
+    buildP(text) {
+        let p = $('<p/>');
+        p.addClass('list-group-item-text');
+        p.text(text);
+        return p;
+    }
+
+    toDom() {
+        let a = $('<a/>');
+        a.addClass('list-group-item');
+
+        let h4 = $('<h4/>');
+        h4.addClass('list-group-item-heading');
+        h4.text(this.name);
+
+        a.append(h4);
+        a.append(this.buildP(`Team: ${this.team}`));
+        a.append(this.buildP(`Free throw pct: ${this.freeThrowPct}`));
+        a.append(this.buildP(`Games played: ${this.gamesPlayed}`));
+        a.append(this.buildP(`Points per game: ${this.pointsPerGame}`));
+        a.append(this.buildP(`Three point pct: ${this.threePointPct}`));
+        return a;
     }
 }
 
@@ -93,19 +126,6 @@ function request(requestType, webMethod, params, successCallback, failureCallbac
     ).fail(failureCallback);
 }
 
-function fetchPA1Results(searchQuery) {
-    results = [];
-    results.push(new SearchResult("lebron james", "http://www.lebron.com"));
-    return results;
-}
-
-function fetchPA2Results(searchQuery) {
-    results = [];
-    results.push(new SearchResult("Trump blows up Zimbaba", "http://www.trump.com"));
-    results.push(new SearchResult("Felix traded", "http://mariners.com"));
-    return results;
-}
-
 
 // callback when the search query value changes
 $('#searchQuery').on('change keyup', (event) => {
@@ -130,10 +150,31 @@ $(document).keypress(function (e) {
         hideSearchSuggestions();
 
         let searchQuery = $('#searchQuery').val();
-        let PA1Results = fetchPA1Results(searchQuery);
-        let PA2Results = fetchPA2Results(searchQuery);
-        let searchResults = PA1Results.concat(PA2Results);
-        renderSearchResults(searchResults);
+
+        let PA1Results = [];
+
+        $.ajax({ // jsonp request
+            crossDomain: true,
+            contentType: "application/json; charset=utf-8",
+            url: "http://ec2-54-244-57-120.us-west-2.compute.amazonaws.com/info344/hwk1/api.php",
+            data: {
+                "searchQuery": searchQuery,
+            }, 
+            dataType: "jsonp",
+        }).then(function (data) {
+            PA1Results = data.map((result) => {
+                return new NbaResult(result.freeThrowPct, result.gamesPlayed, result.name, result.pointsPerGame, result.team, result.threePointPct);
+            })
+            
+            request('POST', 'Dashboard.asmx/RetrieveSearchResults', { 'searchQuery': searchQuery },
+                (PA2Results) => {
+                    PA2Results = PA2Results.map((result) => {
+                        return new ArticleResult(result.title, result.url);
+                    });
+                    let searchResults = PA1Results.concat(PA2Results);
+                    renderSearchResults(searchResults);
+                });
+        });
     }
     
 });

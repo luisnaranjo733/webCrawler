@@ -42,6 +42,13 @@ namespace WebRole1
 
         [WebMethod]
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        public string IsWikiDownloaded()
+        {
+            return new JavaScriptSerializer().Serialize(File.Exists(seedFilePath));
+        }
+
+        [WebMethod]
+        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string IsTrieBuilt()
         {
             return new JavaScriptSerializer().Serialize(trie.IsBuilt());
@@ -94,7 +101,7 @@ namespace WebRole1
         [WebMethod]
         public float buildTrie()
         {
-            if (File.Exists(seedFilePath))
+            if (File.Exists(seedFilePath) && !trie.IsBuilt())
             {
                 foreach (string title in File.ReadLines(seedFilePath))
                 {
@@ -118,7 +125,6 @@ namespace WebRole1
         public string searchTrie(string query)
         {
             List<string> results = trie.SearchForPrefix(query);
-            results.Add("YO");
             string[] resultsArray = results.ToArray();
             return new JavaScriptSerializer().Serialize(resultsArray);
 

@@ -95,7 +95,7 @@ function renderModal(title, body) {
 
 // controller logic
 
-function request(requestType, webMethodName, params, successCallback, failureCallback) {
+function request(requestType, webMethod, params, successCallback, failureCallback) {
     let formattedData = '';
     if (params) {
         formattedData = '{';
@@ -107,115 +107,118 @@ function request(requestType, webMethodName, params, successCallback, failureCal
         formattedData = formattedData.concat('}');
     }
 
-    if (successCallback === null) {
+    if (!successCallback) {
         successCallback = () => { };
     }
 
-    if (failureCallback === null) {
+    if (!failureCallback) {
         failureCallback = () => { };
     }
 
     $.ajax({
         type: requestType,
-        url: `Dashboard.asmx/${webMethodName}`,
+        //url: `Dashboard.asmx/${webMethodName}`,
+        url: webMethod,
         data: formattedData,
         contentType: "application/json; charset=utf-8",
         dataType: "json"
-    }).done(data => successCallback(JSON.parse(data.d))
-    ).fail(failureCallback);
+    }).done((data) => {
+        if (data) { 
+            successCallback(JSON.parse(data.d));
+        } else {
+            successCallback()
+        }
+    }).fail(failureCallback);
 }
 
-function updateStats() {
-    request('POST', 'RetrieveStats', null, stats => {
+function retrieveStats() {
+    request('POST', 'Dashboard.asmx/RetrieveStats', null, stats => {
         renderStats(...stats);
     });
 }
 
-function updateWorkerStatus() {
-    request('POST', 'RetrieveWorkerStatus', null, worker_objects => {
+function updateWorkerStatus(refreshServerSide) {
+    request('POST', 'Dashboard.asmx/RetrieveWorkerStatus', null, worker_objects => {
         let workers = worker_objects.map(worker_object => new Worker(worker_object.id, worker_object.state));
+
+        if (refreshServerSide) { // update stats server side on the first call if worker is idle
+            if (workers.length > 0) {
+                let worker = workers[0];
+                request('POST', 'Dashboard.asmx/UpdateStats', null, retrieveStats);
+            }
+        }
+
         clearWorkerTable();
         renderWorkerTable(workers);
     });
 }
 
 
-function workerStatsLoop() {
+function workerStatsLoop(firstCall) {
     setTimeout(() => {
-        updateWorkerStatus();
-        workerStatsLoop();
+        if (firstCall) {
+            updateWorkerStatus(true);
+        } else {
+            updateWorkerStatus(false);
+        }
+        
+        workerStatsLoop(false);
     }, 2000)
 }
 
 $(document).ready(function () {
-    updateStats();
-    workerStatsLoop();
+    workerStatsLoop(true);
 
     $('#queueBleacher').click(click => {
         let url = "http://bleacherreport.com/robots.txt";
-        request('POST', 'queueSitemap', { 'robotsURL': url }, () => {
-            //updatestats();
-        });
+        request('POST', 'Dashboard.asmx/queueSitemap', { 'robotsURL': url }, retrieveStats);
 
     });
 
     $('#queueCnn').click(click => {
         let url = "http://www.cnn.com/robots.txt";
-        request('POST', 'queueSitemap', { 'robotsURL': url }, () => {
-            //updateStats();
-        });
+        request('POST', 'Dashboard.asmx/queueSitemap', { 'robotsURL': url }, retrieveStats);
     });
 
     $('#startLoading').click(click => {
-        request('POST', 'StartLoading', null, () => {
-            //updateWorkerStatus();
-            //updateStats();
-        });
+        request('POST', 'Dashboard.asmx/StartLoading');
     });
 
     $('#startCrawling').click(click => {
-        request('POST', 'StartCrawling', null, () => {
-            //updateWorkerStatus();
-            //updateStats();
-        });
+        request('POST', 'Dashboard.asmx/StartCrawling');
     });
 
     $('#startIdling').click(click => {
-        request('POST', 'StartIdling', null, () => {
-            //updateWorkerStatus();
-            //updateStats();
-        });
+        request('POST', 'Dashboard.asmx/StartIdling');
     });
 
-    $('#retrievePageTitle').click(() => {
-        let url = $('#indexedUrl').val();
-        request('POST', 'RetrievePageTitle', { 'url': url }, (title) => {
-            renderModal('Page title', title);
-            $('#mainModal').modal('show');
-        });
-    });
 
-    request('POST', 'GetErrorLog', null, (errorLog) => {
+    request('POST', 'Dashboard.asmx/GetErrorLog', null, (errorLog) => {
         renderErrorLog(errorLog);
     });
 
-    request('POST', 'GetRecentUrlsCrawled', { 'n': 10 }, (crawledList) => {
-        console.log('crawled list');
-        console.log(crawledList);
+    request('POST', 'Dashboard.asmx/GetRecentUrlsCrawled', { 'n': 10 }, (crawledList) => {
         renderRecentlyCrawled(crawledList);
     });
 
     $('#deleteEverything').click(() => {
-        request('POST', 'DeleteEverything');
+        request('POST', 'Dashboard.asmx/DeleteEverything');
     });
 
     $('#clearUrlQueue').click(() => {
-        request('POST', 'ClearUrlQueue');
+        request('POST', 'Dashboard.asmx/ClearUrlQueue', null, retrieveStats);
     });
 
 
     $('#refreshStats').click(() => {
-        console.log('refresh button clicked');
-        updateStats();
+        retrieveStats();
+    });
+
+    request('POST', 'SuggestionService.asmx/IsTrieBuilt', null, (isTrieBuilt) => {
+        if (isTrieBuilt) { $('#buildTrie').addClass('hidden'); }
+    });
+
+    request('POST', 'SuggestionService.asmx/IsWikiDownloaded', null, (isWikiDownloaded) => {
+        if (isWikiDownloaded) { $('#downloadWiki').addClass('hidden'); }
     });
 });

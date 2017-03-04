@@ -59,7 +59,7 @@ namespace CrawlerClassLibrary.components
                     return;
                 }
 
-                if (!visitedUrls.ContainsKey(urlMessage.Url))
+                if (!visitedUrls.ContainsKey(urlMessage.Url) && urlValidator.IsUrlValidCrawling(urlMessage.Url))
                 {
                     Interlocked.Increment(ref WebCrawler.nUrlsCrawled);
                     if (WebCrawler.nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
@@ -89,7 +89,7 @@ namespace CrawlerClassLibrary.components
 
 
                     string title = fetchTitleFromDocument(document);
-                    DateTime date = fetchDateFromDocument(document);
+                    DateTime? date = fetchDateFromDocument(document);
 
                     await indexPage(urlMessage.Url, title, date);
 
@@ -113,7 +113,7 @@ namespace CrawlerClassLibrary.components
         }
 
 
-        private async Task indexPage(string url, string title, DateTime date)
+        private async Task indexPage(string url, string title, DateTime? date)
         {
             string[] keywords = title.Split(' ');
             foreach(string keyword in keywords)
@@ -138,7 +138,7 @@ namespace CrawlerClassLibrary.components
 
         private async Task queueChildLinksForCrawling(Link parentLink, HtmlDocument document)
         {
-            HtmlNodeCollection nodeCollection = document.DocumentNode.SelectNodes("//a");
+            HtmlNodeCollection nodeCollection = document.DocumentNode.SelectNodes("//a[@href]");
             if (nodeCollection != null)
             {
                 HtmlNode[] nodes = nodeCollection.ToArray();
@@ -189,9 +189,52 @@ namespace CrawlerClassLibrary.components
             return title;
         }
 
-        private DateTime fetchDateFromDocument(HtmlDocument document)
+        private DateTime? fetchDateFromDocument(HtmlDocument document)
         {
-            return DateTime.UtcNow;
+            // <meta content="2017-03-04T09:55:23Z" name="lastmod">
+            HtmlNodeCollection lastModCollection = document.DocumentNode.SelectNodes("//meta[@name='lastmod']");
+            if (lastModCollection != null)
+            {
+                HtmlNode[] nodes = lastModCollection.ToArray();
+                foreach(HtmlNode node in nodes)
+                {
+                    string lastmod = node.GetAttributeValue("content", "");
+                    if (lastmod != "")
+                    {
+                        try
+                        {
+                            return DateTime.Parse(lastmod);
+                        } catch (FormatException e)
+                        {
+                            Logger.Instance.Log(Logger.LOG_WARNING, e.ToString());
+                        }
+                    }
+                }
+            }
+
+            // <meta content="2017-03-04T09:41:15Z" name="pubdate">
+            HtmlNodeCollection pubDateCollection = document.DocumentNode.SelectNodes("//meta[@name='pubdate']");
+            if (pubDateCollection != null)
+            {
+                HtmlNode[] nodes = pubDateCollection.ToArray();
+                foreach (HtmlNode node in nodes)
+                {
+                    string lastmod = node.GetAttributeValue("content", "");
+                    if (lastmod != "")
+                    {
+                        try
+                        {
+                            return DateTime.Parse(lastmod);
+                        }
+                        catch (FormatException e)
+                        {
+                            Logger.Instance.Log(Logger.LOG_WARNING, e.ToString());
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
 

@@ -12,10 +12,10 @@ namespace CrawlerClassLibrary.models.TableEntities
     {
         public const string TABLE_INDEX = "pageindex";
 
-        public DateTime Date { get; set; }
+        public DateTime? Date { get; set; }
 
         public IndexEntity() { }
-        public IndexEntity(string url, string keyword, DateTime date)
+        public IndexEntity(string url, string keyword, DateTime? date)
         {
             PartitionKey = Base64Encode(keyword);
             RowKey = Base64Encode(url);

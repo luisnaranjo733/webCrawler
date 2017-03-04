@@ -60,8 +60,8 @@ namespace CrawlerClassLibrary.components
             return uri.Segments.Length > 1; // check disallow and check if it has a folder by checking segment length
         }
 
-        private static bool uriIsBleacher(Uri uri) { return uri.Host.Contains("bleacherreport"); }
-        private static bool uriIsCnn(Uri uri) { return uri.Host.Contains("cnn"); }
+        private static bool uriIsBleacher(Uri uri) { return uri.Host.Contains("bleacherreport.com/articles"); }
+        private static bool uriIsCnn(Uri uri) { return uri.Host.Contains("cnn.com"); }
 
         private bool checkUriDomain(Uri uri)
         {

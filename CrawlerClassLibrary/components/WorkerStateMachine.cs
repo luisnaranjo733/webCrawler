@@ -25,7 +25,7 @@ namespace CrawlerClassLibrary.components
         private CloudQueue urlQueue;
 
         private StatsManager statsManager;
-        private int crawlCount;
+        private int crawlCount = 0;
         private WebLoader webLoader;
         private WebCrawler webCrawler;
 
@@ -92,6 +92,7 @@ namespace CrawlerClassLibrary.components
             }
             else if (getState() == STATE_CRAWLING) // crawling state
             {
+                crawlCount += 1;
                 if (crawlCount % StatsManager.UPDATE_STATS_FREQ == 0)
                 {
                     StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
