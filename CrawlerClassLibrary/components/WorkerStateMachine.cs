@@ -21,15 +21,17 @@ namespace CrawlerClassLibrary.components
 
         private WorkerRoleEntity workerRoleInstance;
         private CloudTable workerRoleTable;
-        private int nUrlsCrawled;
+
+        private CloudQueue urlQueue;
 
         private StatsManager statsManager;
-
+        private int crawlCount;
         private WebLoader webLoader;
         private WebCrawler webCrawler;
 
-        public WorkerStateMachine(string workerID)
+        public WorkerStateMachine(string workerID, CloudQueue urlQueue)
         {
+            this.urlQueue = urlQueue;
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
@@ -50,21 +52,27 @@ namespace CrawlerClassLibrary.components
             }
             statsManager = new StatsManager();
             webLoader = new WebLoader();
-            webCrawler = new WebCrawler(statsManager);
+            webCrawler = new WebCrawler();
         }
 
-        public bool Act(UrlMessage urlMessage)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="queueMessage">queueMessage may be null if queue is empty</param>
+        public async void Act(CloudQueueMessage queueMessage)
         {
-            if (urlMessage == null) // if url queue is empty
+            bool deleteMessage = true;  
+
+            if (queueMessage == null) // if url queue is empty
             {
                 if (getState() == STATE_CRAWLING) // and we are in the crawling state, we must have finished crawling
                 {
                     setState(WorkerStateMachine.STATE_IDLE); // so go to idle
                 }
-                return false;
+                return; // exit since there is nothing to act on
             }
+            UrlMessage urlMessage = UrlMessage.Parse(queueMessage.AsString);
 
-            nUrlsCrawled += 1;
 
             if (getState() == STATE_LOADING) // loading code
             {
@@ -78,28 +86,23 @@ namespace CrawlerClassLibrary.components
                     // if we are in the loading state, and we receive a URL_TYPE_HTML message, that means we've finished
                     // loading and can transition to crawling state (since we've finished the sitemap queue messages, FIFO)
                     //setState(WorkerStateMachine.STATE_CRAWLING); // transition to next state
-                    setState(WorkerStateMachine.STATE_IDLE);
-                                                                 // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
-                    return false;
+                    setState(WorkerStateMachine.STATE_IDLE);                          
+                    deleteMessage = false; // intentionally don't delete queue message, so that it gets processed when the state has been set to crawling
                 }
             }
-            else if (getState() == STATE_CRAWLING) // crawling code
+            else if (getState() == STATE_CRAWLING) // crawling state
             {
-                if (nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
+                if (crawlCount % StatsManager.UPDATE_STATS_FREQ == 0)
                 {
-                    statsManager.UpdateStats(); // can be null
+                    StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
                 }
 
+                // multi threading with thread pool gets queued up here
                 WaitCallback callback = new WaitCallback(webCrawler.Crawl);
-                ThreadPool.QueueUserWorkItem(callback, urlMessage.Url);
-                //webCrawler.Crawl(urlMessage.Url);
+                ThreadPool.QueueUserWorkItem(callback, urlMessage);
             }
-            return true;
-        }
 
-        private void SomeLongTask(Object state)
-        {
-            // Insert code to perform a long task.
+            if (deleteMessage) { await urlQueue.DeleteMessageAsync(queueMessage); }
         }
 
         public bool setState(string state)
@@ -123,7 +126,7 @@ namespace CrawlerClassLibrary.components
             // refresh references to components
             statsManager = new StatsManager();
             webLoader = new WebLoader();
-            webCrawler = new WebCrawler(statsManager);
+            webCrawler = new WebCrawler();
             return true;
         }
 

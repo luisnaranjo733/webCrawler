@@ -14,8 +14,11 @@ using System.Threading.Tasks;
 
 namespace CrawlerClassLibrary.components
 {
-    public class StatsManager
+    public sealed class StatsManager
     {
+        private static StatsManager instance = null;
+        private static readonly object padlock = new object();
+
         public const int UPDATE_STATS_FREQ = 3;
         public const string CPU_UTILIZATION = "cpuutilization";
         public const string RAM_AVAILABLE = "ramavailable";
@@ -55,52 +58,22 @@ namespace CrawlerClassLibrary.components
             // update RAM available
             updateStat(RAM_AVAILABLE, getAvailableRAM());
             // update n URLS crawled
-            updateStat(N_URLS_CRAWLED, getUrlsCrawled());
+            //updateStat(N_URLS_CRAWLED, getUrlsCrawled());
             // update size of queue
             updateStat(SIZE_OF_QUEUE, getSizeOfQueue());
             // update size of table
-            updateStat(SIZE_OF_TABLE, getSizeOfTable());
+            //updateStat(SIZE_OF_TABLE, getSizeOfTable());
         }
 
         public void updateStat(string statName, string statValue)
         {
-            TableOperation retrieveOperation = TableOperation.Retrieve<StatEntity>(statName, statName);
-            TableResult retrievedResult = statsTable.Execute(retrieveOperation);
-
-            if (retrievedResult.Result == null)
-            {
-                StatEntity statEntity = new StatEntity(statName, statValue);
-                TableOperation insertOperation = TableOperation.Insert(statEntity);
-                statsTable.Execute(insertOperation);
-            }
-            else
-            {
-                StatEntity statEntity = (StatEntity)retrievedResult.Result;
-                statEntity.Value = statValue;
-                TableOperation updateOperation = TableOperation.Replace(statEntity);
-                try
-                {
-                    statsTable.Execute(updateOperation);
-                } catch (StorageException e)
-                {
-                    Logger.Instance.Log(Logger.LOG_ERROR, "Update stats operation failed: " + statName + " | " + e.ToString());
-                    return;
-                }
-                
-            }
+            StatEntity entity = new StatEntity(statName, statValue);
+            TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(entity);
+            statsTable.Execute(insertOrReplaceOperation);
         }
 
-        private static string retrieveStat(string statName)
+        private string retrieveStat(string statName)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-
-            CloudTable statsTable = tableClient.GetTableReference(StatEntity.TABLE_STATS);
-            statsTable.CreateIfNotExists();
-
             TableOperation retrieveOperation = TableOperation.Retrieve<StatEntity>(statName, statName);
             TableResult retrievedResult = statsTable.Execute(retrieveOperation);
 
@@ -110,11 +83,11 @@ namespace CrawlerClassLibrary.components
                 return statEntity.Value;
             } else
             {
-                return "";
+                return "X";
             }
         }
 
-        public static List<string> GetStats()
+        public List<string> GetStats()
         {
             List<string> stats = new List<string>();
             stats.Add(retrieveStat(CPU_UTILIZATION)); // cpu utilization
@@ -136,11 +109,6 @@ namespace CrawlerClassLibrary.components
             return ramCounter.NextValue() + "MB";
         }
 
-        private string getUrlsCrawled()
-        {
-            return "?";
-        }
-
         public string getSizeOfQueue()
         {
             urlsQueue.FetchAttributes();
@@ -154,9 +122,19 @@ namespace CrawlerClassLibrary.components
             }
         }
 
-        public string getSizeOfTable()
+        public static StatsManager Instance
         {
-            return "?";
+            get
+            {
+                lock (padlock)
+                {
+                    if (instance == null)
+                    {
+                        instance = new StatsManager();
+                    }
+                    return instance;
+                }
+            }
         }
 
     }

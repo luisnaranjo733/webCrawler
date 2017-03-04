@@ -118,6 +118,7 @@ namespace WebRole1
         public string searchTrie(string query)
         {
             List<string> results = trie.SearchForPrefix(query);
+            results.Add("YO");
             string[] resultsArray = results.ToArray();
             return new JavaScriptSerializer().Serialize(resultsArray);
 

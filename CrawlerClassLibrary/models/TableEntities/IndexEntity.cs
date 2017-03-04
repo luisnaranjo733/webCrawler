@@ -12,15 +12,24 @@ namespace CrawlerClassLibrary.models.TableEntities
     {
         public const string TABLE_INDEX = "pageindex";
 
-        public string Title { get; set; }
-        //public DateTime Date { get; set; }
+        public DateTime Date { get; set; }
 
         public IndexEntity() { }
-        public IndexEntity(string url, string title)
+        public IndexEntity(string url, string keyword, DateTime date)
         {
-            PartitionKey = Base64Encode(url);
-            RowKey = WindowsAzure.ChronoTableStorage.RowKey.CreateReverseChronological(DateTime.UtcNow);
-            Title = title;
+            PartitionKey = Base64Encode(keyword);
+            RowKey = Base64Encode(url);
+            Date = date;
+        }
+
+        public string GetKeyword()
+        {
+            return Base64Decode(PartitionKey);
+        }
+
+        public string GetUrl()
+        {
+            return Base64Decode(RowKey);
         }
 
         public static string Base64Encode(string plainText)
@@ -37,7 +46,7 @@ namespace CrawlerClassLibrary.models.TableEntities
 
         public override string ToString()
         {
-            return "" + Base64Decode(PartitionKey) + "," + Title;
+            return "" + Base64Decode(RowKey) + "," + PartitionKey;
         }
     }
 }

@@ -145,24 +145,29 @@ namespace WebRole1
          */
         [WebMethod]
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
-        public string RetrievePageTitle(string url)
+        public string RetrieveSearchResults(string searchQuery)
         {
-            string title = "index not found :(";
+            List<Dictionary<string, string>> collection = new List<Dictionary<string, string>>();
 
-            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
-                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, IndexEntity.Base64Encode(url)));
-
-            IndexEntity index = null;
-            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            string[] keywords = searchQuery.Split(' ');
+            foreach(string keyword in keywords)
             {
-                index = entity;
-                break;
+                TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
+                    .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, keyword));
+
+                foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+                {
+                    Dictionary<string, string> result = new Dictionary<string, string>();
+                    result.Add("keyword", entity.GetKeyword());
+                    result.Add("url", entity.GetUrl());
+                    result.Add("date", entity.Date.ToShortDateString());
+                    collection.Add(result);
+                }
             }
-            if (index != null)
-            {
-                title = index.Title;
-            } 
-            return new JavaScriptSerializer().Serialize(title);
+
+
+
+            return new JavaScriptSerializer().Serialize(collection);
         }
 
 
@@ -171,9 +176,8 @@ namespace WebRole1
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrieveStats()
         {
-            statsManager.updateStat(StatsManager.SIZE_OF_QUEUE, statsManager.getSizeOfQueue());
             //statsManager.updateStat(StatsManager.SIZE_OF_TABLE, statsManager.getSizeOfTable());
-            List<string> stats = StatsManager.GetStats();
+            List<string> stats = StatsManager.Instance.GetStats();
             return new JavaScriptSerializer().Serialize(stats);
         }
 
@@ -225,7 +229,7 @@ namespace WebRole1
             {
                 if (i == n) { break; }
                 i++;
-                results.Add(IndexEntity.Base64Decode(entity.PartitionKey));
+                results.Add(entity.GetUrl());
             }
 
             if (results.Count == 0)

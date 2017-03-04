@@ -22,8 +22,10 @@ namespace WorkerRole1
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
 
+        private CloudQueue commandQueue;
+        private CloudQueue urlQueue;
+
         private WorkerStateMachine workerStateMachine;
-        private StatsManager statsManager = new StatsManager();
         private WebLoader webLoader;
         private WebCrawler webCrawler;
 
@@ -59,8 +61,19 @@ namespace WorkerRole1
                 int.TryParse(instanceId.Substring(instanceId.LastIndexOf("_") + 1), out instanceID); // On compute emulator.
             }
 
-            webCrawler = new WebCrawler(statsManager);
-            workerStateMachine = new WorkerStateMachine(instanceID.ToString());
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
+                ConfigurationManager.AppSettings["StorageConnectionString"]
+            );
+            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
+
+            commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
+            commandQueue.CreateIfNotExists();
+
+            urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
+            urlQueue.CreateIfNotExists();
+
+            webCrawler = new WebCrawler();
+            workerStateMachine = new WorkerStateMachine(instanceID.ToString(), urlQueue);
             return result;
         }
 
@@ -81,16 +94,7 @@ namespace WorkerRole1
         private async Task RunAsync(CancellationToken cancellationToken)
         {
 
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
-            CloudQueue commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
-            commandQueue.CreateIfNotExists();
-
-            CloudQueue urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
-            commandQueue.CreateIfNotExists();
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -107,27 +111,15 @@ namespace WorkerRole1
                     } else if (commandMessage.AsString == CommandMessage.COMMAND_CRAWL)
                     {
                         workerStateMachine.setState(WorkerStateMachine.STATE_CRAWLING);
-                        webCrawler = new WebCrawler(statsManager);
+                        webCrawler = new WebCrawler();
                     }
                     commandQueue.DeleteMessage(commandMessage);
                 }
 
                 if (workerStateMachine.getState() != WorkerStateMachine.STATE_IDLE) // in a loading or crawling state
                 {
-                    CloudQueueMessage urlMessage = urlQueue.GetMessage(); 
-                    if (urlMessage != null) // got url from queue of sitemap or urlset
-                    {
-                        // load or crawl with UrlEntity depending on current state 
-                        UrlMessage urlEntity = UrlMessage.Parse(urlMessage.AsString);
-                        bool deleteMessage = workerStateMachine.Act(urlEntity);
-                        if (deleteMessage)
-                        {
-                            urlQueue.DeleteMessage(urlMessage);
-                        }
-                    } else
-                    {
-                        workerStateMachine.Act(null); // need to call Act(null) to finish crawling one day
-                    }
+                    CloudQueueMessage urlMessage = urlQueue.GetMessage();
+                    workerStateMachine.Act(urlMessage);
                 }
                 
                 await Task.Delay(100);
