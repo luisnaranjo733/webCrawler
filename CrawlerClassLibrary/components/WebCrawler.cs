@@ -19,7 +19,8 @@ namespace CrawlerClassLibrary.components
     public class WebCrawler
     {
         private HtmlWeb web;
-        private CloudTable urlTable;
+        private CloudTable indexTable;
+        private CloudTable recentIndexTable;
         private ConcurrentDictionary<string, bool> visitedUrls;
         private UrlValidator urlValidator;
         private CloudQueue urlQueue;
@@ -34,7 +35,9 @@ namespace CrawlerClassLibrary.components
                 ConfigurationManager.AppSettings["StorageConnectionString"]
             );
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            urlTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
+            recentIndexTable = tableClient.GetTableReference(RecentIndexEntity.TABLE_RECENT_INDEX);
+            recentIndexTable.CreateIfNotExists();
             visitedUrls = new ConcurrentDictionary<string, bool>();
             urlValidator = new UrlValidator();
 
@@ -45,6 +48,8 @@ namespace CrawlerClassLibrary.components
 
         public async void Crawl(Object state)
         {
+            indexTable.CreateIfNotExists();
+            recentIndexTable.CreateIfNotExists();
             try
             {
                 UrlMessage urlMessage;
@@ -54,12 +59,13 @@ namespace CrawlerClassLibrary.components
                 }
                 catch (InvalidCastException e)
                 {
-                    e.ToString(); // called this to make annoying compiler warning go away
-                    //Logger.Instance.Log(Logger.LOG_ERROR, "Non string passed to crawl method - casting failed: " + url + " | " + e.ToString());
+                    //e.ToString(); // called this to make annoying compiler warning go away
+                    Logger.Instance.Log(Logger.LOG_ERROR, "Non string passed to crawl method - casting failed: " + e.ToString());
                     return;
                 }
 
-                if (!visitedUrls.ContainsKey(urlMessage.Url) && urlValidator.IsUrlValidCrawling(urlMessage.Url))
+                //if (!visitedUrls.ContainsKey(urlMessage.Url) && urlValidator.IsUrlValidCrawling(urlMessage.Url))
+                if (!visitedUrls.ContainsKey(urlMessage.Url))
                 {
                     Interlocked.Increment(ref WebCrawler.nUrlsCrawled);
                     if (WebCrawler.nUrlsCrawled % StatsManager.UPDATE_STATS_FREQ == 0)
@@ -73,7 +79,10 @@ namespace CrawlerClassLibrary.components
                     {
                         document = web.Load(urlMessage.Url);
                     }
-                    catch { return; }
+                    catch {
+                        Logger.Instance.Log(Logger.LOG_ERROR, "failed to load url: " + urlMessage.Url);
+                        return;
+                    }
 
                     Link parentLink;
                     try
@@ -82,14 +91,14 @@ namespace CrawlerClassLibrary.components
                     }
                     catch (UriFormatException e)
                     {
-                        e.ToString(); // called this to make annoying compiler warning go away
-                        //Logger.Instance.Log(Logger.LOG_ERROR, "Invalid url format - Uri() parsing failed: " + url + " | " + e.ToString());
+                        //e.ToString(); // called this to make annoying compiler warning go away
+                        Logger.Instance.Log(Logger.LOG_ERROR, "Invalid url format - Uri() parsing failed: " + urlMessage.Url);
                         return;
                     }
 
 
                     string title = fetchTitleFromDocument(document);
-                    DateTime? date = fetchDateFromDocument(document);
+                    DateTime date = fetchDateFromDocument(document);
 
                     await indexPage(urlMessage.Url, title, date);
 
@@ -113,8 +122,22 @@ namespace CrawlerClassLibrary.components
         }
 
 
-        private async Task indexPage(string url, string title, DateTime? date)
+        private async Task indexPage(string url, string title, DateTime date)
         {
+            title = title.ToLower();
+            RecentIndexEntity recentIndexEntity = new RecentIndexEntity(url, title, date);
+            TableOperation insertOperation = TableOperation.InsertOrReplace(recentIndexEntity);
+            try
+            {
+                await recentIndexTable.ExecuteAsync(insertOperation);
+            }
+            catch (StorageException e)
+            {
+                Logger.Instance.Log(Logger.LOG_ERROR, "Insert to recent index failed: " + recentIndexEntity.ToString() + " | " + e.ToString());
+                return;
+            }
+
+
             string[] keywords = title.Split(' ');
             foreach(string keyword in keywords)
             {
@@ -122,11 +145,11 @@ namespace CrawlerClassLibrary.components
                 {
                     continue; // skip keywords with non alphanumberic chars (not valid in azure tables)
                 }
-                IndexEntity indexEntity = new IndexEntity(url, keyword, date);
-                TableOperation insertOperation = TableOperation.InsertOrReplace(indexEntity);
+                IndexEntity indexEntity = new IndexEntity(url, title, keyword, date);
+                insertOperation = TableOperation.InsertOrReplace(indexEntity);
                 try
                 {
-                    await urlTable.ExecuteAsync(insertOperation);
+                    await indexTable.ExecuteAsync(insertOperation);
                 }
                 catch (StorageException e)
                 {
@@ -174,7 +197,7 @@ namespace CrawlerClassLibrary.components
 
         private string fetchTitleFromDocument(HtmlDocument document)
         {
-            string title = "Page indexed, but no <title> tag found";
+            string title = "";
             HtmlNodeCollection nodeCollection = document.DocumentNode.SelectNodes("//title");
             if (nodeCollection != null)
             {
@@ -189,7 +212,7 @@ namespace CrawlerClassLibrary.components
             return title;
         }
 
-        private DateTime? fetchDateFromDocument(HtmlDocument document)
+        private DateTime fetchDateFromDocument(HtmlDocument document)
         {
             // <meta content="2017-03-04T09:55:23Z" name="lastmod">
             HtmlNodeCollection lastModCollection = document.DocumentNode.SelectNodes("//meta[@name='lastmod']");
@@ -234,7 +257,7 @@ namespace CrawlerClassLibrary.components
                 }
             }
 
-            return null;
+            return DateTime.UtcNow;
         }
 
 

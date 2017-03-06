@@ -3,7 +3,7 @@
 // show the div that contains search suggestions
 function showSearchSuggestions() {
     $('#searchSuggestions').css('display', 'block');
-};
+}
 
 // hide the div that contains search suggestions
 function hideSearchSuggestions() {
@@ -11,7 +11,7 @@ function hideSearchSuggestions() {
     if ($('#searchQuery').val() === '') {
         $('#searchSuggestions').css('display', 'none');
     }
-};
+}
 
 // render an array of search result strings (replace state)
 function renderSearchSuggestions(searchSuggestions) {
@@ -34,9 +34,10 @@ function renderSearchResults(searchResults) {
 /* model */
 
 class ArticleResult {
-    constructor(title, url) {
+    constructor(title, url, date) {
         this.title = title;
         this.url = url;
+        this.date = date;
     }
 
     toDom() {
@@ -48,12 +49,20 @@ class ArticleResult {
         h4.addClass('list-group-item-heading');
         h4.text(this.title);
 
-        let p = $('<p/>');
-        p.addClass('list-group-item-text');
-        p.text(this.url);
+        let url = $('<p/>');
+        url.addClass('list-group-item-text');
+        url.text(this.url);
 
         a.append(h4);
-        a.append(p);
+        a.append(url);  
+
+        if (this.date) {
+            let date = $('<p/>');
+            date.addClass('list-group-item-text');
+            date.text(this.date);
+            a.append(date);
+        }
+
         return a;
     }
 }
@@ -144,7 +153,7 @@ $('#searchQuery').on('change keyup', (event) => {
 });
 
 $(document).keypress(function (e) {
-    if (e.which == 13) { // pressed enter
+    if (e.which === 13) { // pressed enter
         e.preventDefault();
         showRankedResults = true;
         hideSearchSuggestions();
@@ -158,21 +167,32 @@ $(document).keypress(function (e) {
             contentType: "application/json; charset=utf-8",
             url: "http://ec2-54-244-57-120.us-west-2.compute.amazonaws.com/info344/hwk1/api.php",
             data: {
-                "searchQuery": searchQuery,
+                "searchQuery": searchQuery
             }, 
-            dataType: "jsonp",
+            dataType: "jsonp"
         }).then(function (data) {
             PA1Results = data.map((result) => {
                 return new NbaResult(result.freeThrowPct, result.gamesPlayed, result.name, result.pointsPerGame, result.team, result.threePointPct);
-            })
+            });
             
             request('POST', 'Dashboard.asmx/RetrieveSearchResults', { 'searchQuery': searchQuery },
                 (PA2Results) => {
                     PA2Results = PA2Results.map((result) => {
-                        return new ArticleResult(result.title, result.url);
+                        let date;
+                        if (result.Date) {
+                            date = new Date(parseInt(result.Date.substr(6)));
+                        }
+                        
+                        return new ArticleResult(result.Title, result.Url, date);
                     });
+                    
                     let searchResults = PA1Results.concat(PA2Results);
                     renderSearchResults(searchResults);
+                }, (response) => {
+                    if (response.status == "500") {
+                        console.log(response);
+                        alert("Server error");
+                    }
                 });
         });
     }

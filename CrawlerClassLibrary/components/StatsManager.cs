@@ -50,6 +50,12 @@ namespace CrawlerClassLibrary.components
             ramCounter = new PerformanceCounter("Memory", "Available MBytes");
         }
 
+        public void ResetStats()
+        {
+            updateStat(N_URLS_CRAWLED, "0");
+            updateStat(SIZE_OF_TABLE, "0");
+        }
+
         public void UpdateStats()
         {
             // update cpu utilization %

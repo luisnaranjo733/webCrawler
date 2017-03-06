@@ -126,7 +126,7 @@ function request(requestType, webMethod, params, successCallback, failureCallbac
         if (data) { 
             successCallback(JSON.parse(data.d));
         } else {
-            successCallback()
+            successCallback();
         }
     }).fail(failureCallback);
 }
@@ -161,13 +161,22 @@ function workerStatsLoop(firstCall) {
         } else {
             updateWorkerStatus(false);
         }
-        
+
         workerStatsLoop(false);
-    }, 2000)
+    }, 2000);
+}
+
+function generalStatsLoop() {
+    setTimeout(() => {
+        console.log('stats loop');
+        retrieveStats();
+        generalStatsLoop();
+    }, 2000);
 }
 
 $(document).ready(function () {
     workerStatsLoop(true);
+    generalStatsLoop();
 
     $('#queueBleacher').click(click => {
         let url = "http://bleacherreport.com/robots.txt";

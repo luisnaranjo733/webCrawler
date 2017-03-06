@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage.Table;
+﻿using CrawlerClassLibrary.models.interfaces;
+using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,19 +9,23 @@ using System.Threading.Tasks;
 
 namespace CrawlerClassLibrary.models.TableEntities
 {
-    public class IndexEntity : TableEntity
+    public class IndexEntity : TableEntity, IIndexEntity
     {
         public const string TABLE_INDEX = "pageindex";
 
-        public DateTime? Date { get; set; }
+        public string Title { get; set; }
+        public DateTime Date { get; set; }
 
         public IndexEntity() { }
-        public IndexEntity(string url, string keyword, DateTime? date)
+        public IndexEntity(string url, string title, string keyword, DateTime date)
         {
             PartitionKey = Base64Encode(keyword);
             RowKey = Base64Encode(url);
+            Title = Base64Encode(title);
             Date = date;
         }
+
+        public string GetTitle() { return Base64Decode(Title); }
 
         public string GetKeyword()
         {
@@ -32,21 +37,26 @@ namespace CrawlerClassLibrary.models.TableEntities
             return Base64Decode(RowKey);
         }
 
+        public DateTime GetDate()
+        {
+            return Date;
+        }
+
         public static string Base64Encode(string plainText)
         {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            return System.Convert.ToBase64String(plainTextBytes);
+            var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
+            return Convert.ToBase64String(plainTextBytes);
         }
 
         public static string Base64Decode(string base64EncodedData)
         {
-            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            var base64EncodedBytes = Convert.FromBase64String(base64EncodedData);
+            return Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
         public override string ToString()
         {
-            return "" + Base64Decode(RowKey) + "," + PartitionKey;
+            return GetKeyword() + " | " + GetUrl();
         }
     }
 }

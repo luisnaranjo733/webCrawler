@@ -53,7 +53,7 @@ namespace CrawlerClassLibrary.components
             }
             else if (root.Name == "urlset")
             {
-                enumerateXml(root, addUrlToQueue, false, isBleacherReport);
+                enumerateXml(root, addUrlToQueue, true, isBleacherReport);
             }
         }
 

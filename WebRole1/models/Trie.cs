@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Web;
-
+using WebRole1.interfaces;
 
 namespace WebRole1.models
 {
     public class Trie : ITrie
     {
-        private TrieNode root = new TrieNode();
+        private AbstractNode root = new ListNode();
 
         public bool IsBuilt()
         {
-            return root.children.Count > 0;
+            return root.getChildren().Count > 0;
         }
 
         public void AddTitle(string title)
@@ -21,7 +21,7 @@ namespace WebRole1.models
             AddTitleHelper(title, this.root);
         }
 
-        private void AddTitleHelper(string title, TrieNode node)
+        private void AddTitleHelper(string title, AbstractNode node)
         {
             if (title.Length == 0) // handle base case
             {
@@ -29,11 +29,11 @@ namespace WebRole1.models
             }
 
             char firstLetter = title[0];
-            TrieNode nextNode = node.containsChildWith(firstLetter);
+            AbstractNode nextNode = node.containsChildWith(firstLetter);
 
             if (nextNode == null) // char not there yet, so add it and recurse
             {
-                nextNode = new TrieNode(); // create new node
+                nextNode = new ListNode(); // create new node
                 nextNode.setData(firstLetter); // set its data
                 node.addChild(nextNode); // add new node to current node's collection
                 
@@ -48,7 +48,7 @@ namespace WebRole1.models
 
         public List<string> SearchForPrefix(string prefix)
         {
-            TrieNode prefixRoot = GetPrefixRoot(prefix, this.root);
+            AbstractNode prefixRoot = GetPrefixRoot(prefix, this.root);
             List<string> results = new List<string>();
             if (prefixRoot != null)
             {
@@ -58,7 +58,7 @@ namespace WebRole1.models
             return results;
         }
 
-        private TrieNode GetPrefixRoot(string prefix, TrieNode node)
+        private AbstractNode GetPrefixRoot(string prefix, AbstractNode node)
         {
             if (prefix.Length == 0)
             {
@@ -66,7 +66,7 @@ namespace WebRole1.models
             }
 
             char firstLetter = prefix[0];
-            TrieNode nextNode = node.containsChildWith(firstLetter);
+            AbstractNode nextNode = node.containsChildWith(firstLetter);
 
             if (nextNode != null)
             {
@@ -78,14 +78,14 @@ namespace WebRole1.models
             }
         }
 
-        private void SearchFromPrefixRoot(ref List<string> results, string prefix, TrieNode prefixRoot)
+        private void SearchFromPrefixRoot(ref List<string> results, string prefix, AbstractNode prefixRoot)
         {
             if (results.Count >= 10)
             {
                 return;
             }
 
-            foreach(TrieNode childNode in prefixRoot.getChildren())
+            foreach(AbstractNode childNode in prefixRoot.getChildren())
             {
                 StringBuilder suggestionCandidate = new StringBuilder(prefix);
                 suggestionCandidate.Append(childNode.getData());

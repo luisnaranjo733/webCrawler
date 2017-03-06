@@ -54,22 +54,40 @@
             <h1>Search Form <small>by Luis Naranjo</small></h1>
         </div>
 
-        <form>
-            <div class="form-group">
-                <label for="searchQuery">Search Query</label>
-                <input type="text" class="form-control" id="searchQuery" autocomplete="off">
-                <br/>
-                <button type="button" class="btn btn-primary visible-xs-block">Search</button>
+        <div class="row">
+            <div class="col-md-10">
+                <form>
+                    <div class="form-group">
+                        <label for="searchQuery">Search Query</label>
+                        <input type="text" class="form-control" id="searchQuery" autocomplete="off">
+                        <br />
+                        <button type="button" class="btn btn-primary visible-xs-block">Search</button>
+                    </div>
+                </form>
+
+                <div id="searchSuggestions">
+                    <ul></ul>
+                </div>
+
+                <div id="searchResults">
+
+                </div>
             </div>
-        </form>
-
-        <div id="searchSuggestions">
-            <ul></ul>
+            <div class="col-md-2">
+                <script type="text/javascript">
+  ( function() {
+    if (window.CHITIKA === undefined) { window.CHITIKA = { 'units' : [] }; };
+    var unit = {"calltype":"async[2]","publisher":"luisnaranjo733","width":160,"height":600,"sid":"Chitika Default"};
+    var placement_id = window.CHITIKA.units.length;
+    window.CHITIKA.units.push(unit);
+    document.write('<div id="chitikaAdBlock-' + placement_id + '"></div>');
+}());
+                </script>
+                <script type="text/javascript" src="//cdn.chitika.net/getads.js" async></script>
+            </div>
         </div>
 
-        <div id="searchResults">
-
-        </div>
+      
 
 
     </div>

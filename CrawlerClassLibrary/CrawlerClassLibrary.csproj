@@ -84,10 +84,13 @@
     <Compile Include="components\WebCrawler.cs" />
     <Compile Include="components\WebLoader.cs" />
     <Compile Include="components\WorkerStateMachine.cs" />
+    <Compile Include="models\interfaces\IIndexEntity.cs" />
     <Compile Include="models\Link.cs" />
     <Compile Include="models\QueueMessages\CommandMessage.cs" />
     <Compile Include="models\QueueMessages\UrlMessage.cs" />
+    <Compile Include="models\SearchResult.cs" />
     <Compile Include="models\TableEntities\DisallowEntity.cs" />
+    <Compile Include="models\TableEntities\RecentIndexEntity.cs" />
     <Compile Include="models\TableEntities\IndexEntity.cs" />
     <Compile Include="models\TableEntities\LogEntity.cs" />
     <Compile Include="models\TableEntities\StatEntity.cs" />

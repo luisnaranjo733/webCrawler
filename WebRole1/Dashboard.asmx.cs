@@ -12,6 +12,9 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using CrawlerClassLibrary.components;
 using CrawlerClassLibrary.models.TableEntities;
 using CrawlerClassLibrary.models.QueueMessages;
+using CrawlerClassLibrary.models;
+using System.Linq;
+using WebRole1.models;
 
 namespace WebRole1
 {
@@ -28,11 +31,14 @@ namespace WebRole1
         CloudTable disallowTable;
         CloudTable workerTable;
         CloudTable indexTable;
+        CloudTable recentIndexTable;
         CloudTable logTable;
         CloudQueue urlQueue;
         CloudQueue commandQueue;
 
-        StatsManager statsManager;
+        private static StatsManager statsManager = new StatsManager();
+        private static SearchResultsCache cache = new SearchResultsCache();
+
         public Admin()
         {
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
@@ -50,6 +56,9 @@ namespace WebRole1
             indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
             indexTable.CreateIfNotExists();
 
+            recentIndexTable = tableClient.GetTableReference(RecentIndexEntity.TABLE_RECENT_INDEX);
+            recentIndexTable.CreateIfNotExists();
+
             logTable = tableClient.GetTableReference(LogEntity.TABLE_LOG);
             logTable.CreateIfNotExists();
 
@@ -58,8 +67,6 @@ namespace WebRole1
 
             commandQueue = queueClient.GetQueueReference(CommandMessage.QUEUE_COMMAND);
             commandQueue.CreateIfNotExists();
-
-            statsManager = new StatsManager();
         }
 
         [WebMethod]
@@ -81,11 +88,6 @@ namespace WebRole1
 
             StreamReader reader = new StreamReader(dataStream);
             string data;
-            // Read and display lines from the file until the end of 
-            // the file is reached.
-
-            //urlQueue.FetchAttributes();
-            //if (urlQueue.ApproximateMessageCount < 15) { return; } // don't add root sitemap urls to the queue if the queue is not empty
 
             while ((data = reader.ReadLine()) != null)
             {
@@ -144,40 +146,106 @@ namespace WebRole1
             commandQueue.AddMessage(stopMessage);
         }
 
-        /* Retrieve page title for a specific url from index
-         * Param: url to use in index search
-         * Return page title for url param
-         */
+        [WebMethod]
+        public void ClearCache()
+        {
+            cache.Clear();
+        }
+
         [WebMethod]
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrieveSearchResults(string searchQuery)
         {
-            List<Dictionary<string, string>> collection = new List<Dictionary<string, string>>();
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            serializer.MaxJsonLength = Int32.MaxValue;
+            if (cache == null)
+            {
+                cache = new SearchResultsCache();
+            }
 
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            result.Add("title", "Lebron is the king");
-            result.Add("url", "http://lebronisking.com");
-            collection.Add(result);
+            IEnumerable<SearchResult> cacheLine = cache.GetLineOrNull(searchQuery);
+            if (cacheLine != null)
+            {
+                try
+                {
+                    string response = serializer.Serialize(cacheLine);
+                    return response;
+                } catch (Exception e)
+                {
+                    Logger.Instance.Log(Logger.LOG_ERROR, "cache retrieval failed: " + e.ToString());
+                    return new JavaScriptSerializer().Serialize(false);
+                }
 
-            //string[] keywords = searchQuery.Split(' ');
-            //foreach(string keyword in keywords)
-            //{
-            //    TableQuery<IndexEntity> query = new TableQuery<IndexEntity>()
-            //        .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, keyword));
+            }
 
-            //    foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
-            //    {
-            //        Dictionary<string, string> result = new Dictionary<string, string>();
-            //        result.Add("keyword", entity.GetKeyword());
-            //        result.Add("url", entity.GetUrl());
-            //        result.Add("date", entity.Date.ToShortDateString());
-            //        collection.Add(result);
-            //    }
-            //}
+            Queue<string> filterConditions = new Queue<string>();
+            List<IndexEntity> unrankedSearchResults = new List<IndexEntity>();
 
+            string[] keywords = searchQuery.Split(' ');
+            foreach (string keyword in keywords)
+            {
+                if (keyword == "") { continue; }
+                string encodedKeyword = IndexEntity.Base64Encode(keyword.ToLower()); // indexed titles are stored in lowercase, in base64 encoding, 
+                string pkFilterCondition = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, encodedKeyword);
+                filterConditions.Enqueue(pkFilterCondition);
+            }
 
+            if (filterConditions.Count > 1)
+            {
+                for (int i = 0; i < filterConditions.Count - 1; i++)
+                {
+                    string currentFilterCondition = filterConditions.Dequeue();
+                    string nextFilterCondition = filterConditions.Dequeue();
 
-            return new JavaScriptSerializer().Serialize(collection);
+                    string combinedFilterCondition = TableQuery.CombineFilters(currentFilterCondition, TableOperators.Or, nextFilterCondition);
+                    filterConditions.Enqueue(combinedFilterCondition);
+                }
+            } else if (filterConditions.Count == 0)
+            {
+                return new JavaScriptSerializer().Serialize(new List<SearchResult>()); // return empty list because no search query was provided
+            }
+
+            // at this point, queue should always be of size 1 for any n keywords provided by the user
+            string combinedFilterConditions = filterConditions.Dequeue();
+            var indexQuery = new TableQuery<IndexEntity>()
+                .Where(combinedFilterConditions);
+
+            foreach(IndexEntity entity in indexTable.ExecuteQuery(indexQuery))
+            {
+                unrankedSearchResults.Add(entity);
+            }
+
+            IEnumerable<SearchResult> rankedSearchResults;
+            try
+            {
+                rankedSearchResults = unrankedSearchResults
+                    .GroupBy(indexEntity => indexEntity.GetUrl())
+                    .Select(grouping => new Tuple<string, int, string, DateTime>(
+                        grouping.Key,
+                        grouping.ToList().Count,
+                        grouping.Select(g => g.GetTitle()).FirstOrDefault(),
+                        grouping.Select(g => g.GetDate()).FirstOrDefault()
+                        ))
+                        .OrderByDescending(g => g.Item2)
+                        .ThenBy(g => g.Item4)
+                        .Select(x => new SearchResult(x.Item3, x.Item1, x.Item4)).Take(50);
+            } catch (Exception e)
+            {
+                Logger.Instance.Log(Logger.LOG_WARNING, "LINQ result ranking failed: " + e.ToString());
+                return new JavaScriptSerializer().Serialize(false);
+            }
+
+            try
+            {
+                cache.Store(searchQuery, rankedSearchResults);
+            } catch (Exception e)
+            {
+                Logger.Instance.Log(Logger.LOG_ERROR, "cache storage failed: " + e.ToString());
+                return new JavaScriptSerializer().Serialize(false);
+            }
+
+            string results = serializer.Serialize(rankedSearchResults);
+            return results;
         }
 
         [WebMethod]
@@ -190,7 +258,6 @@ namespace WebRole1
         [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
         public string RetrieveStats()
         {
-            //statsManager.updateStat(StatsManager.SIZE_OF_TABLE, statsManager.getSizeOfTable());
             List<string> stats = StatsManager.Instance.GetStats();
             return new JavaScriptSerializer().Serialize(stats);
         }
@@ -236,10 +303,10 @@ namespace WebRole1
         {
             List<string> results = new List<string>();
 
-            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>();
+            TableQuery<RecentIndexEntity> query = new TableQuery<RecentIndexEntity>();
 
             int i = 0;
-            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            foreach (RecentIndexEntity entity in recentIndexTable.ExecuteQuery(query))
             {
                 if (i == n) { break; }
                 i++;
@@ -267,8 +334,9 @@ namespace WebRole1
         {
             urlQueue.Clear();
             commandQueue.Clear();
-            workerTable.DeleteIfExists();
+            StatsManager.Instance.ResetStats();
             indexTable.DeleteIfExists();
+            recentIndexTable.DeleteIfExists();
             logTable.DeleteIfExists();
         }
 
@@ -276,15 +344,9 @@ namespace WebRole1
         public List<string> ShowIndex()
         {
             List<string> indexList = new List<string>();
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                ConfigurationManager.AppSettings["StorageConnectionString"]
-            );
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-            CloudTable indexTable = tableClient.GetTableReference(IndexEntity.TABLE_INDEX);
-            indexTable.CreateIfNotExists();
 
-            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>();
-            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            TableQuery<RecentIndexEntity> query = new TableQuery<RecentIndexEntity>();
+            foreach (RecentIndexEntity entity in recentIndexTable.ExecuteQuery(query))
             {
                 indexList.Add(entity.ToString());
             }

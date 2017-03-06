@@ -126,6 +126,10 @@
       <DependentUpon>Dashboard.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="models\AbstractNode.cs" />
+    <Compile Include="models\DictionaryNode.cs" />
+    <Compile Include="models\ListNode.cs" />
+    <Compile Include="models\SearchResultsCache.cs" />
     <Compile Include="SuggestionService.asmx.cs">
       <DependentUpon>SuggestionService.asmx</DependentUpon>
       <SubType>Component</SubType>

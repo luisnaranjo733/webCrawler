@@ -95,7 +95,8 @@ namespace CrawlerClassLibrary.components
                 crawlCount += 1;
                 if (crawlCount % StatsManager.UPDATE_STATS_FREQ == 0)
                 {
-                    StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
+                    //StatsManager.Instance.updateStat(StatsManager.SIZE_OF_QUEUE, StatsManager.Instance.getSizeOfQueue());
+                    StatsManager.Instance.UpdateStats();
                 }
 
                 // multi threading with thread pool gets queued up here
