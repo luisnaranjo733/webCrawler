@@ -1,0 +1,42 @@
+
+
+Here is my approach for each of the requirements:
+
+1) End-to-End experience – results page with URLs from crawler, NBA player stats (when relevant), query suggestion shows
+up correctly &quickly, dashboard, caching, monetization
+
+I tackled the end to end experience implementation in a modular fashion. First, I made improvements and adjustments to PA1, PA2, and PA3 so that
+they could connect easier when I later integrated them for PA4. Then, once all 3 were working as expected individually, and I was 100% clear on the
+requirements of the assignment, I started putting the lego pieces together. 
+
+As I was putting it all together and fixing bugs, I first focused on getting the crawler to work well. My reasoning being that if I can consider
+my crawler reliable, it will make testing everything else easier because I will have more time to crawl if I connect it first. So I implemented multi-threading
+and that immediately introduced a flurry of concurrency related bugs. I had to go back and make the rest of my project that was going to be part of 
+the multi threaded method calls was thread safe.
+
+After getting the crawler going, I focused on the UI. I really wanted the uses to have a good user experience. Since most users are mobile nowadays, I
+followed the practice of "mobile first development". In other words, I designed the site for mobile phones first, and then I adapted it for desktops
+with css media queries and bootstrap. This way, my mobile UI is a first class experience. This was great because it allowed me to check on my crawler 
+while I was away from my computer (I simply bookmarked it on Chrome).
+
+I also focused on giving a good user experience for the dashboard (not such the search form). For example, if the trie is not built in memory yet, 
+you will see a button that says "build trie". If it has already been built, the button will be hidden.
+
+2) Code written in C# – C# best practices!
+
+For this assignment, I wanted to focus on making use of the best software engineering practices. I tried to use software architecture patterns
+wherever possible. I used interfaces, inheritance, separation of concerns, and certain patterns such as state machine throughout my assignment.
+
+I'm particularly proud of my worker role, because it uses a state machine to do all of it's work (WorkerStateMachine.cs). This way, I can keep
+my worker role void of business logic and my code is much more readable. I'm also proud of the way that I combine azure table query filters
+to do n keyword comparisons in my RetrieveSearchResults web method by using a queue algorithm (Dashboard.asmx). Another neat thing is the Trie node
+implementation. I defined an abstract node class, which my ListNode and DictionaryNode classes both implement. To my Trie class, they are the same.
+This allowed me to support the dependency inversion principle (this was for hybrid trie list, which I attempted but didn't finish).
+
+3) Works on Azure & AWS, proper use of all infrastructure modules (web roles, worker roles, table storage, queue storage, etc)
+
+
+My table entities were poorly designed for PA3. I tried to reuse previous table store entity code examples, and it ended up biting me in the butt
+with performance related bugs after poor choices for row and partition keys. I eventually bit the bullet and sat down to read about Azure Table
+scheme design and best practices. Then I rewrote my entities and everything was great! My web roles, worker roles, and queue storage are also being used properly
+according to the best industry practices.

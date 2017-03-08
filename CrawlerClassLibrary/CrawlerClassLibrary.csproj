@@ -80,6 +80,9 @@
     <Compile Include="components\DisallowCache.cs" />
     <Compile Include="components\Logger.cs" />
     <Compile Include="components\StatsManager.cs" />
+    <Compile Include="components\SwappableStorage\AzureStorageProvider.cs" />
+    <Compile Include="components\SwappableStorage\IStorageProvider.cs" />
+    <Compile Include="components\SwappableStorage\StorageProviderFactory.cs" />
     <Compile Include="components\UrlValidator.cs" />
     <Compile Include="components\WebCrawler.cs" />
     <Compile Include="components\WebLoader.cs" />

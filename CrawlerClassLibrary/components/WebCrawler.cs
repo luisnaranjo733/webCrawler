@@ -1,4 +1,5 @@
 ﻿using CrawlerClassLibrary.components;
+using CrawlerClassLibrary.components.SwappableStorage;
 using CrawlerClassLibrary.models.QueueMessages;
 using CrawlerClassLibrary.models.TableEntities;
 using HtmlAgilityPack;
@@ -25,8 +26,10 @@ namespace CrawlerClassLibrary.components
         private UrlValidator urlValidator;
         private CloudQueue urlQueue;
 
-        static int nUrlsCrawled = 48007;
-        static int sizeOfIndex = 47989;
+        static int nUrlsCrawled;
+        static int sizeOfIndex;
+
+        private IStorageProvider azureStorageProvider;
 
         public WebCrawler()
         {
@@ -44,6 +47,8 @@ namespace CrawlerClassLibrary.components
             CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
 
             urlQueue = queueClient.GetQueueReference(UrlMessage.QUEUE_URL);
+
+            azureStorageProvider = StorageProviderFactory.Instance.CreateStorageProvider(StorageProviderFactory.Provider.Azure);
         }
 
         public async void Crawl(Object state)
@@ -100,7 +105,9 @@ namespace CrawlerClassLibrary.components
                     string title = fetchTitleFromDocument(document);
                     DateTime date = fetchDateFromDocument(document);
 
-                    await indexPage(urlMessage.Url, title, date);
+
+                    await azureStorageProvider.indexPage(urlMessage.Url, title, date);
+                    //await indexPage(urlMessage.Url, title, date);
 
                     Interlocked.Increment(ref WebCrawler.sizeOfIndex);
                     if (WebCrawler.sizeOfIndex % StatsManager.UPDATE_STATS_FREQ == 0)

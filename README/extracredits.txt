@@ -1,0 +1,15 @@
+Extra credit points attempted:
+
+* Beautiful search results page (styling, photos, etc)
+	- My page has a great UI with lots of extra buttons and functionality that was not required in the assignment
+	(i.e. a build trie button that only appears when the trie is not yet built)
+	(i.e. real-time stats and worker role status updates)
+	(i.e. 1st class mobile friendly ux)
+
+* Multi-threading
+	- My crawler is multi-threaded, and all of the code I wrote that the crawler depends on is thread-safe
+
+* Hybrid list-trie
+	- I couldn't get my hybrid list-trie to work (the logic), but I did implement a DictionaryNode in addition to my ListNode.
+	They both implement an AbstractNode class, so my Trie can use either implementation.
+	- Hopefully I can get some partial extra credit for this

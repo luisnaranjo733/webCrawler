@@ -29,10 +29,10 @@ namespace WebRole1
         private static Trie trie = new Trie();
 
 
-        private const string SEED_FILE_NAME = "seed_short.txt"; // 1000 lines only for testing
-        //private const string SEED_FILE_NAME = "seed.txt"; // full file
+        //private const string SEED_FILE_NAME = "seed_short.txt"; // 1000 lines only for testing
+        private const string SEED_FILE_NAME = "seed.txt"; // full file
 
-       public SuggestionService()
+        public SuggestionService()
         {
 
             string fileDir = Path.GetTempPath();
