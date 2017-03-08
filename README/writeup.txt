@@ -33,6 +33,11 @@ to do n keyword comparisons in my RetrieveSearchResults web method by using a qu
 implementation. I defined an abstract node class, which my ListNode and DictionaryNode classes both implement. To my Trie class, they are the same.
 This allowed me to support the dependency inversion principle (this was for hybrid trie list, which I attempted but didn't finish).
 
+One other really cool thing I added was swappable storage for the index. I added a StorageProviderFactory, and IStorageProvider interface, and a
+concrete AzureStorageProvider implementation. The storage provider handles the act of indexing a page given a title, url, and date.
+Now, if I wanted to swap the storage location to something like DynamoDB, I would just write a new class that implements IStorageProvider interface
+and configure my factory to also return that type of storage provider factory. So then I could theoretically change storage locations at runtime!
+
 3) Works on Azure & AWS, proper use of all infrastructure modules (web roles, worker roles, table storage, queue storage, etc)
 
 

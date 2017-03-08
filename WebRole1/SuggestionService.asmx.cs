@@ -115,9 +115,9 @@ namespace WebRole1
                         return memoryRemaining;
                     }
                 }
-                StatsManager.Instance.updateStat(StatsManager.N_TRIE_TITLES, trie.Size.ToString());
-                StatsManager.Instance.updateStat(StatsManager.LAST_TRIE_TITLE, trie.LastTitleInserted);
             }
+            StatsManager.Instance.updateStat(StatsManager.N_TRIE_TITLES, trie.Size.ToString());
+            StatsManager.Instance.updateStat(StatsManager.LAST_TRIE_TITLE, trie.LastTitleInserted);
             return -1.0f;
 
         }
