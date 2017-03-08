@@ -47,7 +47,7 @@ namespace CrawlerClassLibrary.components
             Uri uri = new Uri(url);
 
             // check domain, then disallow cache
-            if (uriIsBleacher(uri))
+            if (uriIsBleacherArticle(uri))
             {
                 if (!bleacherDisallowCache.isUrlAllowed(uri)) { return false; }
             } else if (uriIsCnn(uri))
@@ -60,7 +60,8 @@ namespace CrawlerClassLibrary.components
             return uri.Segments.Length > 1; // check disallow and check if it has a folder by checking segment length
         }
 
-        private static bool uriIsBleacher(Uri uri) { return uri.AbsoluteUri.Contains("bleacherreport.com/articles"); }
+        private static bool uriIsBleacherArticle(Uri uri) { return uri.AbsoluteUri.Contains("bleacherreport.com/articles"); }
+        private static bool uriIsBleacher(Uri uri) { return uri.AbsoluteUri.Contains("bleacherreport.com"); }
         private static bool uriIsCnn(Uri uri) { return uri.Host.Contains("cnn.com"); }
 
         private bool checkUriDomain(Uri uri)

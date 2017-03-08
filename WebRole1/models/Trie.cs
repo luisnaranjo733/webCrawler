@@ -11,6 +11,9 @@ namespace WebRole1.models
     {
         private AbstractNode root = new ListNode();
 
+        public int Size { get; set; }
+        public string LastTitleInserted { get; set; }
+
         public bool IsBuilt()
         {
             return root.getChildren().Count > 0;
@@ -19,6 +22,8 @@ namespace WebRole1.models
         public void AddTitle(string title)
         {
             AddTitleHelper(title, this.root);
+            Size = Size + 1;
+            LastTitleInserted = title;
         }
 
         private void AddTitleHelper(string title, AbstractNode node)

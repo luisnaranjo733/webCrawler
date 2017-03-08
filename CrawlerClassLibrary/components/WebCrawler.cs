@@ -25,8 +25,8 @@ namespace CrawlerClassLibrary.components
         private UrlValidator urlValidator;
         private CloudQueue urlQueue;
 
-        static int nUrlsCrawled;
-        static int sizeOfIndex;
+        static int nUrlsCrawled = 48007;
+        static int sizeOfIndex = 47989;
 
         public WebCrawler()
         {
@@ -180,10 +180,9 @@ namespace CrawlerClassLibrary.components
                         return;
                     }
 
-                    if (!visitedUrls.ContainsKey(link) && urlValidator.IsUrlValidCrawling(link))
+                    bool urlIsValid = urlValidator.IsUrlValidCrawling(link);
+                    if (!visitedUrls.ContainsKey(link) && urlIsValid)
                     {
-                        visitedUrls.TryAdd(link, true);
-
                         UrlMessage urlEntity = new UrlMessage(UrlMessage.URL_TYPE_HTML, link);
 
                         // Add message

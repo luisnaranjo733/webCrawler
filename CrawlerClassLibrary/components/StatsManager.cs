@@ -25,6 +25,8 @@ namespace CrawlerClassLibrary.components
         public const string N_URLS_CRAWLED = "nurlscrawled";
         public const string SIZE_OF_QUEUE = "sizeofqueue";
         public const string SIZE_OF_TABLE = "sizeoftable";
+        public const string N_TRIE_TITLES = "ntrietitles";
+        public const string LAST_TRIE_TITLE = "lasttrietitleinserted";
 
         private CloudTable statsTable;
         private CloudTable indexTable;
@@ -101,6 +103,8 @@ namespace CrawlerClassLibrary.components
             stats.Add(retrieveStat(N_URLS_CRAWLED)); // n urls crawled
             stats.Add(retrieveStat(SIZE_OF_QUEUE)); // size of queue
             stats.Add(retrieveStat(SIZE_OF_TABLE)); // size of table
+            stats.Add(retrieveStat(N_TRIE_TITLES));
+            stats.Add(retrieveStat(LAST_TRIE_TITLE));
             return stats;
         }
 

@@ -13,12 +13,14 @@ class Worker {
 }
 
 // view logic (jquery dom manipulation)
-function renderStats(cpuUtilization, ramAvailable, nUrlsCrawled, sizeOfQueue, sizeOfTable) {
+function renderStats(cpuUtilization, ramAvailable, nUrlsCrawled, sizeOfQueue, sizeOfTable, sizeOfTrie, lastTrieTitle) {
     $('#cpu').text(cpuUtilization);
     $('#ramMB').text(ramAvailable);
     $('#nUrlsCrawled').text(nUrlsCrawled);
     $('#sizeOfQueue').text(sizeOfQueue);
     $('#sizeOfTable').text(sizeOfTable);
+    $('#sizeOfTrie').text(sizeOfTrie);
+    $('#lastTrieTitle').text(lastTrieTitle);
 }
 
 function clearStats() {
@@ -223,11 +225,11 @@ $(document).ready(function () {
         retrieveStats();
     });
 
-    request('POST', 'SuggestionService.asmx/IsTrieBuilt', null, (isTrieBuilt) => {
-        if (isTrieBuilt) { $('#buildTrie').addClass('hidden'); }
-    });
-
     request('POST', 'SuggestionService.asmx/IsWikiDownloaded', null, (isWikiDownloaded) => {
         if (isWikiDownloaded) { $('#downloadWiki').addClass('hidden'); }
+        request('POST', 'SuggestionService.asmx/IsTrieBuilt', null, (isTrieBuilt) => {
+            if (isTrieBuilt) { $('#buildTrie').addClass('hidden'); }
+            if (isWikiDownloaded && isTrieBuilt) { $('#trieTitle').addClass('hidden'); }
+        });
     });
 });

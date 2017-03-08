@@ -17,7 +17,15 @@ function hideSearchSuggestions() {
 function renderSearchSuggestions(searchSuggestions) {
     $('ul').empty();
     for (let searchSuggestion of searchSuggestions) {
-        $('#searchSuggestions ul').append(`<li>${searchSuggestion}</li>`);
+        let li = $(`<li>${searchSuggestion}</li>`);
+        $('#searchSuggestions ul').append(li);
+        li.click((e) => {
+            let event = $(e.target);
+            let selection = event.context.innerText;
+            console.log(selection);
+            $('#searchQuery').val(selection);
+            handleSubmit(selection);
+        });
     }
 }
 
@@ -29,6 +37,7 @@ function renderSearchResults(searchResults) {
         $('#searchResults').append(searchResult.toDom());
 
     }
+
 }
 
 /* model */
@@ -137,7 +146,7 @@ function request(requestType, webMethod, params, successCallback, failureCallbac
 
 
 // callback when the search query value changes
-$('#searchQuery').on('change keyup', (event) => {
+$('#searchQuery').on('keyup', (event) => {
     let searchQuery = $('#searchQuery').val();
     if (searchQuery) {
         request('POST', 'SuggestionService.asmx/searchTrie', { 'query': searchQuery }, renderSearchSuggestions);
@@ -152,50 +161,58 @@ $('#searchQuery').on('change keyup', (event) => {
     }
 });
 
+function handleSubmit(searchQuery) {
+    
+    showRankedResults = true;
+    hideSearchSuggestions();
+
+    if (!searchQuery) {
+        searchQuery = $('#searchQuery').val();
+    }
+    console.log(`Search query: ${searchQuery}`);
+
+    let PA1Results = [];
+
+    $.ajax({ // jsonp request
+        crossDomain: true,
+        contentType: "application/json; charset=utf-8",
+        url: "http://ec2-54-244-57-120.us-west-2.compute.amazonaws.com/info344/hwk1/api.php",
+        data: {
+            "searchQuery": searchQuery
+        },
+        dataType: "jsonp"
+    }).then(function (data) {
+        PA1Results = data.map((result) => {
+            return new NbaResult(result.freeThrowPct, result.gamesPlayed, result.name, result.pointsPerGame, result.team, result.threePointPct);
+        });
+
+        request('POST', 'Dashboard.asmx/RetrieveSearchResults', { 'searchQuery': searchQuery },
+            (PA2Results) => {
+                PA2Results = PA2Results.map((result) => {
+                    let date;
+                    if (result.Date) {
+                        date = new Date(parseInt(result.Date.substr(6)));
+                    }
+
+                    return new ArticleResult(result.Title, result.Url, date);
+                });
+
+                let searchResults = PA1Results.concat(PA2Results);
+                renderSearchResults(searchResults);
+            }, (response) => {
+                if (response.status == "500") {
+                    console.log(response);
+                    alert("Server error");
+                }
+            });
+    });
+}
+
 $(document).keypress(function (e) {
     if (e.which === 13) { // pressed enter
         e.preventDefault();
-        showRankedResults = true;
-        hideSearchSuggestions();
-
-        let searchQuery = $('#searchQuery').val();
-
-        let PA1Results = [];
-
-        $.ajax({ // jsonp request
-            crossDomain: true,
-            contentType: "application/json; charset=utf-8",
-            url: "http://ec2-54-244-57-120.us-west-2.compute.amazonaws.com/info344/hwk1/api.php",
-            data: {
-                "searchQuery": searchQuery
-            }, 
-            dataType: "jsonp"
-        }).then(function (data) {
-            PA1Results = data.map((result) => {
-                return new NbaResult(result.freeThrowPct, result.gamesPlayed, result.name, result.pointsPerGame, result.team, result.threePointPct);
-            });
-            
-            request('POST', 'Dashboard.asmx/RetrieveSearchResults', { 'searchQuery': searchQuery },
-                (PA2Results) => {
-                    PA2Results = PA2Results.map((result) => {
-                        let date;
-                        if (result.Date) {
-                            date = new Date(parseInt(result.Date.substr(6)));
-                        }
-                        
-                        return new ArticleResult(result.Title, result.Url, date);
-                    });
-                    
-                    let searchResults = PA1Results.concat(PA2Results);
-                    renderSearchResults(searchResults);
-                }, (response) => {
-                    if (response.status == "500") {
-                        console.log(response);
-                        alert("Server error");
-                    }
-                });
-        });
-    }
+        handleSubmit();
+    } 
     
 });
 
@@ -205,6 +222,7 @@ $('#searchQuery').focus((event) => {
     showSearchSuggestions();
 });
 
-$('#searchQuery').focusout((event) => {
-    hideSearchSuggestions();
-});
+//$('#searchQuery').focusout((event) => {
+//    console.log('focus out');
+//    hideSearchSuggestions();
+//});

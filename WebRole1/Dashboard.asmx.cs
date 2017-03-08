@@ -345,6 +345,19 @@ namespace WebRole1
         {
             List<string> indexList = new List<string>();
 
+            TableQuery<IndexEntity> query = new TableQuery<IndexEntity>();
+            foreach (IndexEntity entity in indexTable.ExecuteQuery(query))
+            {
+                indexList.Add(entity.ToString());
+            }
+            return indexList;
+        }
+
+        [WebMethod]
+        public List<string> ShowRecentIndex()
+        {
+            List<string> indexList = new List<string>();
+
             TableQuery<RecentIndexEntity> query = new TableQuery<RecentIndexEntity>();
             foreach (RecentIndexEntity entity in recentIndexTable.ExecuteQuery(query))
             {

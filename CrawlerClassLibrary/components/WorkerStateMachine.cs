@@ -99,9 +99,11 @@ namespace CrawlerClassLibrary.components
                     StatsManager.Instance.UpdateStats();
                 }
 
-                // multi threading with thread pool gets queued up here
+                //multi threading with thread pool gets queued up here
                 WaitCallback callback = new WaitCallback(webCrawler.Crawl);
                 ThreadPool.QueueUserWorkItem(callback, urlMessage);
+
+                //webCrawler.Crawl(urlMessage);
             }
 
             if (deleteMessage) { await urlQueue.DeleteMessageAsync(queueMessage); }

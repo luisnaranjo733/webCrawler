@@ -56,7 +56,7 @@ namespace CrawlerClassLibrary.models.TableEntities
 
         public override string ToString()
         {
-            return GetUrl();
+            return GetTitle() + " | " + GetUrl();
         }
     }
 }
